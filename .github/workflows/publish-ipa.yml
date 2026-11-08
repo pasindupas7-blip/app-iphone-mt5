@@ -1,0 +1,112 @@
+name: Build and Publish Unsigned iOS IPA
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-ipa:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build production web bundle and prepare www directory
+        run: |
+          npm install
+          npm run build
+          rm -rf www
+          mkdir -p www
+          cp -R dist/. www/
+
+      - name: Initialize Capacitor iOS wrapper
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/ios
+          if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ] && [ ! -f capacitor.config.js ]; then
+            npx cap init "App" "com.app.ios" --web-dir=www
+          fi
+          rm -rf ios
+          npx cap add ios
+          npx cap copy ios
+
+      - name: Compile unsigned iOS App.app with Xcode
+        working-directory: ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Package App.app into ipa-distribution/app-debug.ipa
+        run: |
+          rm -rf Payload ipa-distribution
+          mkdir -p Payload ipa-distribution
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry ipa-distribution/app-debug.ipa Payload
+          shasum -a 256 ipa-distribution/app-debug.ipa | awk '{print $1 "  app-debug.ipa"}' > ipa-distribution/app-debug.ipa.sha256
+
+      - name: Validate compiled IPA archive before publication
+        run: |
+          if [ ! -s "ipa-distribution/app-debug.ipa" ]; then
+            echo "Error: ipa-distribution/app-debug.ipa is missing or empty."
+            exit 1
+          fi
+
+          if [ ! -s "ipa-distribution/app-debug.ipa.sha256" ]; then
+            echo "Error: ipa-distribution/app-debug.ipa.sha256 is missing or empty."
+            exit 1
+          fi
+
+          ACTUAL_SHA=$(shasum -a 256 ipa-distribution/app-debug.ipa | awk '{print $1}')
+          RECORDED_SHA=$(awk '{print $1}' ipa-distribution/app-debug.ipa.sha256)
+          if [ "$ACTUAL_SHA" != "$RECORDED_SHA" ]; then
+            echo "Error: SHA-256 checksum mismatch."
+            exit 1
+          fi
+
+          unzip -tq ipa-distribution/app-debug.ipa
+          unzip -l ipa-distribution/app-debug.ipa | grep -q "Payload/App.app/Info.plist"
+
+      - name: Publish IPA to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG="debug-ipa-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$RELEASE_TAG" \
+            ipa-distribution/app-debug.ipa \
+            ipa-distribution/app-debug.ipa.sha256 \
+            --title "iOS Unsigned IPA Build #${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" \
+            --notes "Automated unsigned iOS IPA build (${RELEASE_TAG}) compiled via macOS Xcode runner." \
+            --latest
+
+          IPA_SIZE=$(du -h ipa-distribution/app-debug.ipa | awk '{print $1}')
+          IPA_SHA=$(awk '{print $1}' ipa-distribution/app-debug.ipa.sha256)
+          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.ipa"
+
+          {
+            echo "## iOS Unsigned IPA Release Summary"
+            echo ""
+            echo "- **Release Tag:** \`${RELEASE_TAG}\`"
+            echo "- **IPA Size:** \`${IPA_SIZE}\`"
+            echo "- **SHA-256 Checksum:** \`${IPA_SHA}\`"
+            echo "- **GitHub Release Page:** ${RELEASE_URL}"
+            echo "- **Direct Latest IPA Download URL:** ${DOWNLOAD_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"

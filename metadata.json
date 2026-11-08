@@ -1,0 +1,6 @@
+{
+  "name": "MetaTrader 5 iOS Terminal",
+  "description": "Mobile-first iOS MetaTrader 5 (MT5) trading terminal with real-time quotes, interactive HTML5 candlestick charts, market order execution, position management, and trade history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
