@@ -27,7 +27,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   onExecuteOrder,
 }) => {
   const [symbol, setSymbol] = useState(initialSymbol);
-  const [lotsStr, setLotsStr] = useState('0.10');
+  const [lotsStr, setLotsStr] = useState('0.01');
   const [slStr, setSlStr] = useState('');
   const [tpStr, setTpStr] = useState('');
   const [showSymbolPicker, setShowSymbolPicker] = useState(false);
@@ -78,22 +78,22 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const bidParts = splitMT5Price(q.bid, q.digits);
   const askParts = splitMT5Price(q.ask, q.digits);
   const isUp = q.flash === 'up' || (q.flash === 'none' && q.bid >= q.prevBid);
-  const priceColor = isUp ? 'text-[#2962FF]' : 'text-[#F23645]';
+  const priceColor = isUp ? 'text-[#007AFF]' : 'text-[#D92B2B]';
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex flex-col justify-end sm:justify-center items-center"
+      className="fixed inset-0 z-50 bg-black/40 flex flex-col justify-end sm:justify-center items-center"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-[#0D1117] border-t sm:border border-[#21262D] rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[92vh] pb-safe"
+        className="w-full max-w-md bg-white border-t sm:border border-[#E5E5EA] rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[92vh] pb-safe shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-4 py-3 bg-[#161B22] border-b border-[#21262D] flex items-center justify-between">
+        <div className="px-4 py-3 bg-[#F9F9F9] border-b border-[#E5E5EA] flex items-center justify-between">
           <button
             onClick={onClose}
-            className="text-[15px] text-[#2962FF] font-medium min-w-[54px] text-left active:opacity-70"
+            className="text-[16px] text-[#007AFF] font-medium min-w-[54px] text-left active:opacity-70"
           >
             Cancel
           </button>
@@ -102,16 +102,16 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
             onClick={() => setShowSymbolPicker((p) => !p)}
             className="flex flex-col items-center"
           >
-            <div className="flex items-center gap-1 text-[16px] font-bold text-[#E6EDF3]">
+            <div className="flex items-center gap-1 text-[16px] font-bold text-black">
               <span>{q.symbol}</span>
-              <ChevronDown className="w-4 h-4 text-[#8B949E]" />
+              <ChevronDown className="w-4 h-4 text-[#6C6C70]" />
             </div>
-            <span className="text-[11px] text-[#8B949E]">{q.description}</span>
+            <span className="text-[11px] text-[#6C6C70]">{q.description}</span>
           </button>
 
           <button
             onClick={onClose}
-            className="min-w-[54px] flex justify-end text-[#8B949E] hover:text-[#E6EDF3]"
+            className="min-w-[54px] flex justify-end text-[#6C6C70]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -119,7 +119,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 
         {/* Symbol Switcher Accordion */}
         {showSymbolPicker && (
-          <div className="bg-[#161B22] border-b border-[#21262D] max-h-48 overflow-y-auto divide-y divide-[#21262D]">
+          <div className="bg-white border-b border-[#E5E5EA] max-h-48 overflow-y-auto divide-y divide-[#E5E5EA]">
             {watchlist.map((sym) => {
               const item = quotes[sym];
               if (!item) return null;
@@ -133,14 +133,14 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                     setShowSymbolPicker(false);
                   }}
                   className={`w-full px-4 py-2.5 flex items-center justify-between text-left ${
-                    sym === symbol ? 'bg-[#2962FF]/15 text-[#2962FF]' : 'text-[#E6EDF3]'
+                    sym === symbol ? 'bg-[#007AFF]/10 text-[#007AFF]' : 'text-black'
                   }`}
                 >
                   <div>
                     <div className="text-[14px] font-bold">{item.symbol}</div>
-                    <div className="text-[11px] text-[#8B949E]">{item.description}</div>
+                    <div className="text-[11px] text-[#6C6C70]">{item.description}</div>
                   </div>
-                  <div className="text-[13px] font-mono">
+                  <div className="text-[13px] font-mono text-[#3A3A3C]">
                     {item.bid.toFixed(item.digits)} / {item.ask.toFixed(item.digits)}
                   </div>
                 </button>
@@ -151,27 +151,27 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 
         <div className="p-4 space-y-3 overflow-y-auto">
           {/* Execution Type */}
-          <div className="bg-[#161B22] border border-[#21262D] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
-            <span className="text-[14px] text-[#8B949E]">Execution</span>
-            <span className="text-[14px] font-semibold text-[#E6EDF3]">
+          <div className="bg-[#F2F2F7] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+            <span className="text-[14px] text-[#6C6C70]">Execution</span>
+            <span className="text-[14px] font-semibold text-black">
               Market Execution
             </span>
           </div>
 
           {/* Authentic MT5 Lot Size Steppers: -0.1 | -0.01 | LOT INPUT | +0.01 | +0.1 */}
-          <div className="bg-[#161B22] border border-[#21262D] rounded-xl px-2 py-1.5 flex items-center justify-between">
+          <div className="bg-[#F2F2F7] rounded-xl px-2 py-1.5 flex items-center justify-between">
             <div className="flex items-center">
               <button
                 type="button"
                 onClick={() => adjustLots(-0.1)}
-                className="min-w-[46px] min-h-[40px] px-2 text-[14px] font-semibold text-[#2962FF] active:bg-[#21262D] rounded-lg"
+                className="min-w-[46px] min-h-[40px] px-2 text-[14px] font-semibold text-[#007AFF] active:bg-[#E5E5EA] rounded-lg"
               >
                 -0.1
               </button>
               <button
                 type="button"
                 onClick={() => adjustLots(-0.01)}
-                className="min-w-[48px] min-h-[40px] px-2 text-[14px] font-semibold text-[#2962FF] active:bg-[#21262D] rounded-lg"
+                className="min-w-[48px] min-h-[40px] px-2 text-[14px] font-semibold text-[#007AFF] active:bg-[#E5E5EA] rounded-lg"
               >
                 -0.01
               </button>
@@ -183,21 +183,21 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
               min="0.01"
               value={lotsStr}
               onChange={(e) => setLotsStr(e.target.value)}
-              className="w-24 text-center bg-transparent text-[19px] font-bold text-[#E6EDF3] focus:outline-none"
+              className="w-24 text-center bg-transparent text-[19px] font-bold text-black focus:outline-none"
             />
 
             <div className="flex items-center">
               <button
                 type="button"
                 onClick={() => adjustLots(0.01)}
-                className="min-w-[48px] min-h-[40px] px-2 text-[14px] font-semibold text-[#2962FF] active:bg-[#21262D] rounded-lg"
+                className="min-w-[48px] min-h-[40px] px-2 text-[14px] font-semibold text-[#007AFF] active:bg-[#E5E5EA] rounded-lg"
               >
                 +0.01
               </button>
               <button
                 type="button"
                 onClick={() => adjustLots(0.1)}
-                className="min-w-[46px] min-h-[40px] px-2 text-[14px] font-semibold text-[#2962FF] active:bg-[#21262D] rounded-lg"
+                className="min-w-[46px] min-h-[40px] px-2 text-[14px] font-semibold text-[#007AFF] active:bg-[#E5E5EA] rounded-lg"
               >
                 +0.1
               </button>
@@ -205,11 +205,10 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
           </div>
 
           {/* Live Bid & Ask Display */}
-          <div className="py-2 px-4 bg-[#161B22]/60 border border-[#21262D] rounded-xl flex items-center justify-around">
+          <div className="py-2.5 px-4 bg-[#F9F9F9] border border-[#E5E5EA] rounded-xl flex items-center justify-around">
             <div className="text-center">
-              <div className="text-[11px] text-[#8B949E] uppercase mb-0.5">Bid</div>
               <div className={`inline-flex items-baseline ${priceColor}`}>
-                <span className="text-[18px] font-medium">{bidParts.prefix}</span>
+                <span className="text-[19px] font-medium">{bidParts.prefix}</span>
                 <span className="text-[28px] font-bold">{bidParts.big}</span>
                 {bidParts.sup && (
                   <span className="text-[14px] font-bold self-start -mt-0.5">
@@ -219,12 +218,11 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
               </div>
             </div>
 
-            <div className="h-9 w-[1px] bg-[#21262D]" />
+            <div className="h-8 w-[1px] bg-[#E5E5EA]" />
 
             <div className="text-center">
-              <div className="text-[11px] text-[#8B949E] uppercase mb-0.5">Ask</div>
               <div className={`inline-flex items-baseline ${priceColor}`}>
-                <span className="text-[18px] font-medium">{askParts.prefix}</span>
+                <span className="text-[19px] font-medium">{askParts.prefix}</span>
                 <span className="text-[28px] font-bold">{askParts.big}</span>
                 {askParts.sup && (
                   <span className="text-[14px] font-bold self-start -mt-0.5">
@@ -236,17 +234,16 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
           </div>
 
           {/* Stop Loss & Take Profit Inputs */}
-          <div className="bg-[#161B22] border border-[#21262D] rounded-xl divide-y divide-[#21262D]">
-            {/* Stop Loss */}
+          <div className="bg-[#F2F2F7] rounded-xl divide-y divide-[#E5E5EA]">
             <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-[14px] font-medium text-[#F23645] w-24">
+              <span className="text-[14px] font-medium text-[#D92B2B] w-24">
                 Stop Loss
               </span>
               <div className="flex items-center gap-1 flex-1 justify-end">
                 <button
                   type="button"
                   onClick={() => stepPriceInput(slStr, setSlStr, -1)}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#2962FF] active:bg-[#21262D]"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#007AFF] active:bg-[#E5E5EA]"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
@@ -256,28 +253,27 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                   value={slStr}
                   onChange={(e) => setSlStr(e.target.value)}
                   placeholder="Not set"
-                  className="w-28 text-center bg-[#0D1117] border border-[#21262D] rounded-lg py-1.5 text-[14px] font-mono text-[#E6EDF3] placeholder-[#8B949E] focus:outline-none focus:border-[#2962FF]"
+                  className="w-28 text-center bg-white border border-[#E5E5EA] rounded-lg py-1.5 text-[14px] text-black placeholder-[#8E8E93] focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => stepPriceInput(slStr, setSlStr, 1)}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#2962FF] active:bg-[#21262D]"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#007AFF] active:bg-[#E5E5EA]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Take Profit */}
             <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-[14px] font-medium text-[#089981] w-24">
+              <span className="text-[14px] font-medium text-[#269E86] w-24">
                 Take Profit
               </span>
               <div className="flex items-center gap-1 flex-1 justify-end">
                 <button
                   type="button"
                   onClick={() => stepPriceInput(tpStr, setTpStr, -1)}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#2962FF] active:bg-[#21262D]"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#007AFF] active:bg-[#E5E5EA]"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
@@ -287,12 +283,12 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                   value={tpStr}
                   onChange={(e) => setTpStr(e.target.value)}
                   placeholder="Not set"
-                  className="w-28 text-center bg-[#0D1117] border border-[#21262D] rounded-lg py-1.5 text-[14px] font-mono text-[#E6EDF3] placeholder-[#8B949E] focus:outline-none focus:border-[#2962FF]"
+                  className="w-28 text-center bg-white border border-[#E5E5EA] rounded-lg py-1.5 text-[14px] text-black placeholder-[#8E8E93] focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => stepPriceInput(tpStr, setTpStr, 1)}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#2962FF] active:bg-[#21262D]"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#007AFF] active:bg-[#E5E5EA]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -305,7 +301,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
             <button
               type="button"
               onClick={() => handlePlaceOrder('sell')}
-              className="h-14 rounded-xl bg-[#F23645] active:bg-[#F23645]/85 text-white flex flex-col items-center justify-center shadow-lg transition-transform active:scale-[0.98]"
+              className="h-13 rounded-xl bg-[#E54D42] active:opacity-85 text-white flex flex-col items-center justify-center shadow-sm transition-transform active:scale-[0.98]"
             >
               <span className="text-[15px] font-bold tracking-tight leading-tight">
                 SELL
@@ -318,7 +314,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
             <button
               type="button"
               onClick={() => handlePlaceOrder('buy')}
-              className="h-14 rounded-xl bg-[#2962FF] active:bg-[#2962FF]/85 text-white flex flex-col items-center justify-center shadow-lg transition-transform active:scale-[0.98]"
+              className="h-13 rounded-xl bg-[#007AFF] active:opacity-85 text-white flex flex-col items-center justify-center shadow-sm transition-transform active:scale-[0.98]"
             >
               <span className="text-[15px] font-bold tracking-tight leading-tight">
                 BUY
@@ -327,10 +323,6 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                 by Market
               </span>
             </button>
-          </div>
-
-          <div className="text-center text-[11px] text-[#8B949E] pt-0.5">
-            Attention! The trade will be executed at market conditions, difference with requested price may be significant!
           </div>
         </div>
       </div>

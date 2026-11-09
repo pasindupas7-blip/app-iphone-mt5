@@ -1,93 +1,29 @@
 import { Candle, Position, QuoteData, SymbolConfig, Timeframe, TradingAccount, ClosedDeal } from '../types/mt5';
 
 export const DEFAULT_WATCHLIST_SYMBOLS = [
+  'AUDCAD',
+  'AUDCHF',
+  'AUDJPY',
+  'AUDNZD',
+  'AUDUSD',
+  'CADCHF',
+  'CADJPY',
+  'CHFJPY',
+  'EURAUD',
   'XAUUSD',
   'NAS100',
   'EURUSD',
   'GBPUSD',
   'USDJPY',
+  'USDCHF',
+  'USDCAD',
+  'NZDUSD',
+  'USDSEK',
+  'USDCNH',
   'BTCUSD',
 ];
 
 export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
-  {
-    symbol: 'XAUUSD',
-    description: 'Gold vs US Dollar',
-    digits: 2,
-    point: 0.01,
-    contractSize: 100,
-    baseBid: 4070.19,
-    defaultSpreadPts: 18,
-    volatility: 0.42,
-    marginRate: 0.01,
-    category: 'Metals',
-    twelveDataSymbol: 'XAU/USD',
-  },
-  {
-    symbol: 'NAS100',
-    description: 'US Tech 100 Index',
-    digits: 2,
-    point: 0.01,
-    contractSize: 1,
-    baseBid: 21482.50,
-    defaultSpreadPts: 120,
-    volatility: 3.5,
-    marginRate: 0.005,
-    category: 'Indices',
-    twelveDataSymbol: 'NDX',
-  },
-  {
-    symbol: 'EURUSD',
-    description: 'Euro vs US Dollar',
-    digits: 5,
-    point: 0.00001,
-    contractSize: 100000,
-    baseBid: 1.08452,
-    defaultSpreadPts: 6,
-    volatility: 0.00012,
-    marginRate: 0.01,
-    category: 'Forex',
-    twelveDataSymbol: 'EUR/USD',
-  },
-  {
-    symbol: 'GBPUSD',
-    description: 'Great Britain Pound vs US Dollar',
-    digits: 5,
-    point: 0.00001,
-    contractSize: 100000,
-    baseBid: 1.29634,
-    defaultSpreadPts: 9,
-    volatility: 0.00015,
-    marginRate: 0.01,
-    category: 'Forex',
-    twelveDataSymbol: 'GBP/USD',
-  },
-  {
-    symbol: 'USDJPY',
-    description: 'US Dollar vs Japanese Yen',
-    digits: 3,
-    point: 0.001,
-    contractSize: 100000,
-    baseBid: 152.643,
-    defaultSpreadPts: 8,
-    volatility: 0.018,
-    marginRate: 0.01,
-    category: 'Forex',
-    twelveDataSymbol: 'USD/JPY',
-  },
-  {
-    symbol: 'BTCUSD',
-    description: 'Bitcoin vs US Dollar',
-    digits: 2,
-    point: 0.01,
-    contractSize: 1,
-    baseBid: 89420.50,
-    defaultSpreadPts: 1850,
-    volatility: 24.0,
-    marginRate: 0.02,
-    category: 'Crypto',
-    twelveDataSymbol: 'BTC/USD',
-  },
   {
     symbol: 'AUDCAD',
     description: 'Australian Dollar vs Canadian Dollar',
@@ -96,7 +32,7 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 0.97000,
     defaultSpreadPts: 59,
-    volatility: 0.00011,
+    volatility: 0.00008,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'AUD/CAD',
@@ -109,7 +45,7 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 0.56332,
     defaultSpreadPts: 36,
-    volatility: 0.00010,
+    volatility: 0.00007,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'AUD/CHF',
@@ -122,7 +58,7 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 108.796,
     defaultSpreadPts: 88,
-    volatility: 0.015,
+    volatility: 0.012,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'AUD/JPY',
@@ -135,7 +71,7 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 1.23771,
     defaultSpreadPts: 146,
-    volatility: 0.00011,
+    volatility: 0.00008,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'AUD/NZD',
@@ -147,8 +83,8 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     point: 0.00001,
     contractSize: 100000,
     baseBid: 0.68663,
-    defaultSpreadPts: 6,
-    volatility: 0.00011,
+    defaultSpreadPts: 19,
+    volatility: 0.00008,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'AUD/USD',
@@ -161,7 +97,7 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 0.58066,
     defaultSpreadPts: 30,
-    volatility: 0.00009,
+    volatility: 0.00007,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'CAD/CHF',
@@ -174,7 +110,7 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 112.139,
     defaultSpreadPts: 66,
-    volatility: 0.014,
+    volatility: 0.011,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'CAD/JPY',
@@ -187,7 +123,7 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 193.079,
     defaultSpreadPts: 139,
-    volatility: 0.019,
+    volatility: 0.014,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'CHF/JPY',
@@ -200,27 +136,199 @@ export const ALL_SYMBOL_CONFIGS: SymbolConfig[] = [
     contractSize: 100000,
     baseBid: 1.62166,
     defaultSpreadPts: 99,
-    volatility: 0.00016,
+    volatility: 0.00011,
     marginRate: 0.01,
     category: 'Forex',
     twelveDataSymbol: 'EUR/AUD',
   },
+  {
+    symbol: 'EURCAD',
+    description: 'Euro vs Canadian Dollar',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 1.49825,
+    defaultSpreadPts: 35,
+    volatility: 0.00010,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'EUR/CAD',
+  },
+  {
+    symbol: 'XAUUSD',
+    description: 'Gold vs US Dollar',
+    digits: 2,
+    point: 0.01,
+    contractSize: 100,
+    baseBid: 4070.19,
+    defaultSpreadPts: 16,
+    volatility: 0.35,
+    marginRate: 0.01,
+    category: 'Metals',
+    twelveDataSymbol: 'XAU/USD',
+  },
+  {
+    symbol: 'NAS100',
+    description: 'US Tech 100 Index',
+    digits: 2,
+    point: 0.01,
+    contractSize: 1,
+    baseBid: 21482.50,
+    defaultSpreadPts: 80,
+    volatility: 3.2,
+    marginRate: 0.005,
+    category: 'Indices',
+    twelveDataSymbol: 'NDX',
+  },
+  {
+    symbol: 'EURUSD',
+    description: 'Euro vs US Dollar',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 1.08452,
+    defaultSpreadPts: 14,
+    volatility: 0.00010,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'EUR/USD',
+  },
+  {
+    symbol: 'GBPUSD',
+    description: 'Great Britain Pound vs US Dollar',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 1.29634,
+    defaultSpreadPts: 19,
+    volatility: 0.00012,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'GBP/USD',
+  },
+  {
+    symbol: 'USDJPY',
+    description: 'US Dollar vs Japanese Yen',
+    digits: 3,
+    point: 0.001,
+    contractSize: 100000,
+    baseBid: 152.643,
+    defaultSpreadPts: 20,
+    volatility: 0.015,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'USD/JPY',
+  },
+  {
+    symbol: 'USDCHF',
+    description: 'US Dollar vs Swiss Franc',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 0.87542,
+    defaultSpreadPts: 16,
+    volatility: 0.00009,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'USD/CHF',
+  },
+  {
+    symbol: 'USDCAD',
+    description: 'US Dollar vs Canadian Dollar',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 1.38945,
+    defaultSpreadPts: 24,
+    volatility: 0.00010,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'USD/CAD',
+  },
+  {
+    symbol: 'NZDUSD',
+    description: 'New Zealand Dollar vs US Dollar',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 0.59724,
+    defaultSpreadPts: 20,
+    volatility: 0.00008,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'NZD/USD',
+  },
+  {
+    symbol: 'USDSEK',
+    description: 'US Dollar vs Swedish Krona',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 10.68450,
+    defaultSpreadPts: 41,
+    volatility: 0.00085,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'USD/SEK',
+  },
+  {
+    symbol: 'USDCNH',
+    description: 'US Dollar vs Chinese Yuan Offshore',
+    digits: 5,
+    point: 0.00001,
+    contractSize: 100000,
+    baseBid: 7.18420,
+    defaultSpreadPts: 18,
+    volatility: 0.00045,
+    marginRate: 0.01,
+    category: 'Forex',
+    twelveDataSymbol: 'USD/CNH',
+  },
+  {
+    symbol: 'BTCUSD',
+    description: 'Bitcoin vs US Dollar',
+    digits: 2,
+    point: 0.01,
+    contractSize: 1,
+    baseBid: 89420.50,
+    defaultSpreadPts: 1850,
+    volatility: 22.0,
+    marginRate: 0.02,
+    category: 'Crypto',
+    twelveDataSymbol: 'BTC/USD',
+  },
 ];
 
+// Exact 7 accounts in exact order from Screenshot 3
 export const INITIAL_ACCOUNTS: TradingAccount[] = [
   {
-    id: 'acc-ftmo-100k',
-    name: '$100k FTMO Free Trial',
-    login: '1512092510',
-    broker: 'FTMO-Demo',
-    company: 'FTMO Evaluation Global s.r.o.',
-    server: 'FTMO-Demo',
-    balance: 100751.70,
-    initialDeposit: 100000.00,
-    leverage: 100,
+    id: 'acc-fusion-010',
+    name: 'DEMO_010',
+    login: '420784',
+    broker: 'FusionMarkets-Demo',
+    company: 'Fusion Markets Pty Ltd',
+    server: 'FusionMarkets-Demo',
+    balance: 1.42,
+    initialDeposit: 674.08,
+    leverage: 500,
     currency: 'USD',
     isDemo: true,
-    logoType: 'ftmo',
+    logoType: 'fusion',
+  },
+  {
+    id: 'acc-fusion-live',
+    name: 'pasindu pelanage 004',
+    login: '4030119',
+    broker: 'FusionMarkets-Live',
+    company: 'Fusion Markets Pty Ltd',
+    server: 'FusionMarkets-Live',
+    balance: 0.00,
+    initialDeposit: 0.00,
+    leverage: 500,
+    currency: 'USD',
+    isDemo: false,
+    readOnly: true,
+    logoType: 'fusion',
   },
   {
     id: 'acc-fusion-004',
@@ -251,18 +359,18 @@ export const INITIAL_ACCOUNTS: TradingAccount[] = [
     logoType: 'ftmo_mt5',
   },
   {
-    id: 'acc-fusion-010',
-    name: 'DEMO_010',
-    login: '420784',
-    broker: 'FusionMarkets-Demo',
-    company: 'Fusion Markets Pty Ltd',
-    server: 'FusionMarkets-Demo',
-    balance: 1.42,
-    initialDeposit: 674.08,
-    leverage: 500,
+    id: 'acc-ftmo-100k',
+    name: '$100k FTMO Free Trial',
+    login: '1512092510',
+    broker: 'FTMO-Demo',
+    company: 'FTMO Evaluation Global s.r.o.',
+    server: 'FTMO-Demo',
+    balance: 100751.70,
+    initialDeposit: 100000.00,
+    leverage: 100,
     currency: 'USD',
     isDemo: true,
-    logoType: 'fusion',
+    logoType: 'ftmo',
   },
   {
     id: 'acc-fundingpips',
@@ -277,21 +385,6 @@ export const INITIAL_ACCOUNTS: TradingAccount[] = [
     currency: 'USD',
     isDemo: true,
     logoType: 'fundingpips',
-  },
-  {
-    id: 'acc-fusion-live',
-    name: 'pasindu pelanage 004',
-    login: '4030119',
-    broker: 'FusionMarkets-Live',
-    company: 'Fusion Markets Pty Ltd',
-    server: 'FusionMarkets-Live',
-    balance: 0.00,
-    initialDeposit: 0.00,
-    leverage: 500,
-    currency: 'USD',
-    isDemo: false,
-    readOnly: true,
-    logoType: 'fusion',
   },
   {
     id: 'acc-vt-live',
@@ -309,7 +402,25 @@ export const INITIAL_ACCOUNTS: TradingAccount[] = [
   },
 ];
 
+// Exact closed deals matching Screenshot 4 so Deposit=674.08, Profit=-655.80, Swap=0.00, Commission=-16.86, Balance=1.42
 export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
+  {
+    id: '89201400',
+    orderId: '89201400',
+    symbol: 'XAUUSD',
+    type: 'buy',
+    lots: 0.1,
+    openPrice: 4352.15,
+    closePrice: 4341.22,
+    openTime: '2026.08.07 22:55:10',
+    closeTime: '2026.08.07 23:13:38',
+    profit: -109.33,
+    swap: 0.00,
+    commission: -11.86,
+    sl: null,
+    tp: null,
+    closeReason: 'manual',
+  },
   {
     id: '89201401',
     orderId: '89201401',
@@ -322,7 +433,7 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     closeTime: '2026.08.07 23:13:38',
     profit: -5.30,
     swap: 0.00,
-    commission: -0.70,
+    commission: -0.50,
     sl: 4335.00,
     tp: 4355.00,
     closeReason: 'manual',
@@ -339,7 +450,7 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     closeTime: '2026.08.07 23:13:38',
     profit: -6.20,
     swap: 0.00,
-    commission: -0.70,
+    commission: -0.50,
     sl: 4335.00,
     tp: 4355.00,
     closeReason: 'manual',
@@ -356,7 +467,7 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     closeTime: '2026.08.07 23:13:38',
     profit: -6.20,
     swap: 0.00,
-    commission: -0.70,
+    commission: -0.50,
     sl: null,
     tp: null,
     closeReason: 'manual',
@@ -373,7 +484,7 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     closeTime: '2026.08.07 23:13:38',
     profit: -6.40,
     swap: 0.00,
-    commission: -0.70,
+    commission: -0.50,
     sl: null,
     tp: null,
     closeReason: 'manual',
@@ -384,16 +495,16 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     symbol: 'XAUUSD',
     type: 'buy',
     lots: 0.1,
-    openPrice: 4367.13,
-    closePrice: 4351.51,
-    openTime: '2026.09.10 20:15:40',
-    closeTime: '2026.09.10 20:58:01',
-    profit: -156.20,
+    openPrice: 4341.86,
+    closePrice: 4341.22,
+    openTime: '2026.08.07 23:12:15',
+    closeTime: '2026.08.07 23:13:38',
+    profit: -6.40,
     swap: 0.00,
-    commission: -0.70,
-    sl: 4351.51,
-    tp: 4390.00,
-    closeReason: 'sl',
+    commission: -0.50,
+    sl: null,
+    tp: null,
+    closeReason: 'manual',
   },
   {
     id: '89201406',
@@ -401,14 +512,14 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     symbol: 'XAUUSD',
     type: 'buy',
     lots: 0.1,
-    openPrice: 4367.02,
-    closePrice: 4350.67,
-    openTime: '2026.09.10 20:18:22',
-    closeTime: '2026.09.10 21:02:00',
-    profit: -163.50,
+    openPrice: 4367.13,
+    closePrice: 4351.51,
+    openTime: '2026.09.10 20:15:40',
+    closeTime: '2026.09.10 20:58:01',
+    profit: -156.20,
     swap: 0.00,
-    commission: -0.70,
-    sl: 4350.67,
+    commission: -0.50,
+    sl: 4351.51,
     tp: 4390.00,
     closeReason: 'sl',
   },
@@ -418,20 +529,37 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     symbol: 'XAUUSD',
     type: 'buy',
     lots: 0.1,
+    openPrice: 4367.02,
+    closePrice: 4350.67,
+    openTime: '2026.09.10 20:18:22',
+    closeTime: '2026.09.10 21:02:00',
+    profit: -163.50,
+    swap: 0.00,
+    commission: -0.50,
+    sl: 4350.67,
+    tp: 4390.00,
+    closeReason: 'sl',
+  },
+  {
+    id: '89201408',
+    orderId: '89201408',
+    symbol: 'XAUUSD',
+    type: 'buy',
+    lots: 0.1,
     openPrice: 4367.00,
     closePrice: 4348.91,
     openTime: '2026.09.10 20:21:11',
     closeTime: '2026.09.10 21:04:01',
     profit: -180.90,
     swap: 0.00,
-    commission: -0.70,
+    commission: -0.50,
     sl: 4348.91,
     tp: null,
     closeReason: 'sl',
   },
   {
-    id: '89201408',
-    orderId: '89201408',
+    id: '89201409',
+    orderId: '89201409',
     symbol: 'XAUUSD',
     type: 'buy',
     lots: 0.01,
@@ -441,14 +569,14 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     closeTime: '2026.11.02 10:40:48',
     profit: 3.80,
     swap: 0.00,
-    commission: -0.07,
+    commission: -0.50,
     sl: 3890.00,
     tp: 3899.35,
     closeReason: 'tp',
   },
   {
-    id: '89201409',
-    orderId: '89201409',
+    id: '89201410',
+    orderId: '89201410',
     symbol: 'XAUUSD',
     type: 'sell',
     lots: 0.01,
@@ -458,53 +586,13 @@ export const INITIAL_CLOSED_DEALS: ClosedDeal[] = [
     closeTime: '2026.11.02 15:37:55',
     profit: -19.17,
     swap: 0.00,
-    commission: -0.07,
+    commission: -0.50,
     sl: 3918.94,
     tp: 3880.00,
     closeReason: 'sl',
   },
-  {
-    id: '89201410',
-    orderId: '89201410',
-    symbol: 'NAS100',
-    type: 'buy',
-    lots: 1.5,
-    openPrice: 21240.00,
-    closePrice: 21495.20,
-    openTime: '2026.11.05 15:30:10',
-    closeTime: '2026.11.05 16:45:22',
-    profit: 382.80,
-    swap: 0.00,
-    commission: -4.50,
-    sl: 21150.00,
-    tp: 21495.20,
-    closeReason: 'tp',
-  },
-  {
-    id: '89201411',
-    orderId: '89201411',
-    symbol: 'EURUSD',
-    type: 'sell',
-    lots: 1.0,
-    openPrice: 1.08920,
-    closePrice: 1.08415,
-    openTime: '2026.11.06 09:15:00',
-    closeTime: '2026.11.06 14:22:18',
-    profit: 505.00,
-    swap: 0.00,
-    commission: -7.00,
-    sl: 1.09200,
-    tp: 1.08415,
-    closeReason: 'tp',
-  },
 ];
 
-/**
- * Formats a price into the authentic MT5 3-part display:
- * - prefix: normal size leading digits (e.g., "0.97" or "4070.")
- * - big: enlarged 2 main pip digits (e.g., "00" or "19")
- * - sup: superscript point digit (e.g., "0" or "9")
- */
 export function splitMT5Price(price: number, digits: number): {
   prefix: string;
   big: string;
@@ -512,8 +600,6 @@ export function splitMT5Price(price: number, digits: number): {
 } {
   const formatted = price.toFixed(digits);
   if (digits === 5 || digits === 3) {
-    // e.g. 0.97000 -> prefix "0.97", big "00", sup "0"
-    // e.g. 108.796 -> prefix "108.", big "79", sup "6"
     const len = formatted.length;
     return {
       prefix: formatted.slice(0, len - 3),
@@ -522,8 +608,6 @@ export function splitMT5Price(price: number, digits: number): {
     };
   }
   if (digits === 2) {
-    // For 2-digit symbols like XAUUSD (4070.19), NAS100 (21482.50), BTCUSD (89420.50)
-    // Show integer part + dot as prefix, last 2 decimal digits as big, or last digit as sup if >10000
     const len = formatted.length;
     return {
       prefix: formatted.slice(0, len - 2),
@@ -553,8 +637,56 @@ export function formatMT5DateTime(date: Date = new Date()): string {
 }
 
 /**
- * Formats numbers with spaces for thousands like MT5 iOS ("100 751.70", "18 043.14")
+ * Parses an MT5 date string ("YYYY.MM.DD HH:MM:SS" or "YYYY-MM-DD HH:MM:SS") into epoch ms.
  */
+export function parseMT5DateTimeMs(dateStr: string): number {
+  if (!dateStr) return 0;
+  const cleaned = dateStr.trim().replace(/\./g, '-');
+  const [datePart, timePart = '00:00:00'] = cleaned.split(/\s+/);
+  if (!datePart) return 0;
+  const [y, m, d] = datePart.split('-').map((n) => parseInt(n, 10));
+  const [hh = 0, mm = 0, ss = 0] = timePart.split(':').map((n) => parseInt(n, 10));
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return 0;
+  return new Date(y, m - 1, d, hh || 0, mm || 0, ss || 0).getTime();
+}
+
+/**
+ * Strictly sorts ClosedDeal items in chronological order (oldest -> newest) by closeTime, then openTime, then id.
+ */
+export function sortDealsChronologically(deals: ClosedDeal[]): ClosedDeal[] {
+  return [...deals].sort((a, b) => {
+    const tA = parseMT5DateTimeMs(a.closeTime || a.openTime);
+    const tB = parseMT5DateTimeMs(b.closeTime || b.openTime);
+    if (tA !== tB) return tA - tB;
+    const oA = parseMT5DateTimeMs(a.openTime || a.closeTime);
+    const oB = parseMT5DateTimeMs(b.openTime || b.closeTime);
+    if (oA !== oB) return oA - oB;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+export function calculateClosedDealProfit(
+  symbol: string,
+  type: 'buy' | 'sell',
+  lots: number,
+  openPrice: number,
+  closePrice: number
+): number {
+  const diff = type === 'buy' ? closePrice - openPrice : openPrice - closePrice;
+  if (symbol === 'XAUUSD') {
+    return Number((diff * 100 * lots).toFixed(2));
+  }
+  if (symbol === 'NAS100' || symbol === 'BTCUSD') {
+    const mult = symbol === 'NAS100' ? 10 : 1;
+    return Number((diff * mult * lots).toFixed(2));
+  }
+  if (symbol.endsWith('JPY')) {
+    const denom = closePrice > 0 ? closePrice : 150;
+    return Number(((diff * 100000 * lots) / denom).toFixed(2));
+  }
+  return Number((diff * 100000 * lots).toFixed(2));
+}
+
 export function formatMT5Money(val: number, showPlus = false): string {
   const sign = val < 0 ? '-' : showPlus && val > 0 ? '+' : '';
   const abs = Math.abs(val).toFixed(2);
@@ -563,34 +695,12 @@ export function formatMT5Money(val: number, showPlus = false): string {
   return `${sign}${spacedInt}.${decPart}`;
 }
 
-/**
- * Calculates floating P/L for an open position based on live Bid/Ask
- */
 export function calculatePositionPL(pos: Position, quote: QuoteData | undefined): number {
   if (!quote) return 0;
   const closePrice = pos.type === 'buy' ? quote.bid : quote.ask;
-  const diff = pos.type === 'buy' ? closePrice - pos.openPrice : pos.openPrice - closePrice;
-
-  if (pos.symbol === 'XAUUSD') {
-    // 1 lot = 100 oz -> $1 move = $100 per 1.0 lot
-    return Number((diff * 100 * pos.lots).toFixed(2));
-  }
-  if (pos.symbol === 'NAS100' || pos.symbol === 'BTCUSD') {
-    // 1 lot = 1 contract -> $1 move = $1 per 1.0 lot (or 10x for NAS100 CFD)
-    const mult = pos.symbol === 'NAS100' ? 10 : 1;
-    return Number((diff * mult * pos.lots).toFixed(2));
-  }
-  if (pos.symbol.endsWith('JPY')) {
-    // 1 lot = 100,000 units, quote in JPY (~152)
-    return Number(((diff * 100000 * pos.lots) / closePrice).toFixed(2));
-  }
-  // Standard FX pair (EURUSD, GBPUSD, etc.)
-  return Number((diff * 100000 * pos.lots).toFixed(2));
+  return calculateClosedDealProfit(pos.symbol, pos.type, pos.lots, pos.openPrice, closePrice);
 }
 
-/**
- * Calculates required margin for a position
- */
 export function calculatePositionMargin(
   pos: Position,
   quote: QuoteData | undefined,
@@ -598,10 +708,9 @@ export function calculatePositionMargin(
 ): number {
   const price = quote ? quote.bid : pos.openPrice;
   const contractSize = quote ? quote.contractSize : pos.symbol === 'XAUUSD' ? 100 : 100000;
-  const notional =
-    pos.symbol.endsWith('JPY')
-      ? (pos.lots * contractSize)
-      : pos.lots * contractSize * price;
+  const notional = pos.symbol.endsWith('JPY')
+    ? pos.lots * contractSize
+    : pos.lots * contractSize * price;
   return Number((notional / leverage).toFixed(2));
 }
 
@@ -621,29 +730,28 @@ export function getTimeframeSeconds(tf: Timeframe): number {
       return 14400;
     case 'D1':
       return 86400;
+    case 'W1':
+      return 604800;
+    case 'MN':
+      return 2592000;
   }
 }
 
-/**
- * Generates realistic historical OHLC candlestick series anchored to the current live bid price
- */
 export function generateHistoricalCandles(
   config: SymbolConfig,
   tf: Timeframe,
   currentBid: number,
-  count: number = 140
+  count: number = 1200
 ): Candle[] {
   const stepSec = getTimeframeSeconds(tf);
   const nowSec = Math.floor(Date.now() / 1000);
   const currentBucket = Math.floor(nowSec / stepSec) * stepSec;
 
-  // Deterministic pseudo-random walk backwards from currentBid so chart ends right at currentBid
   const candles: Candle[] = [];
   let cursorClose = currentBid;
   const tfMultiplier = Math.sqrt(stepSec / 60);
   const vol = config.volatility * tfMultiplier;
 
-  // Seed based on symbol + timeframe
   let seed =
     config.symbol.split('').reduce((acc, ch) => acc + ch.charCodeAt(0) * 31, 0) + stepSec;
   const rand = () => {
@@ -653,15 +761,22 @@ export function generateHistoricalCandles(
 
   for (let i = 0; i < count; i++) {
     const time = currentBucket - i * stepSec;
-    // Create realistic wave structure like Screenshot 6
-    const waveBias = Math.sin((count - i) * 0.14) * vol * 0.45;
-    const delta = (rand() - 0.48) * vol * 2.2 + waveBias;
-    const open = Number((cursorClose - delta).toFixed(config.digits));
+    // Create the exact sharp rally shape on the right side like Screenshot 6
+    const waveBias =
+      i < 16
+        ? vol * 0.65
+        : i < 32
+        ? -vol * 0.25
+        : Math.sin((count - i) * 0.14) * vol * 0.4;
+    const delta = (rand() - 0.48) * vol * 2.1 + waveBias;
+    const open = Number(Math.max(config.point * 10, cursorClose - delta).toFixed(config.digits));
     const close = Number(cursorClose.toFixed(config.digits));
-    const wickUp = rand() * vol * 1.35;
-    const wickDown = rand() * vol * 1.35;
+    const wickUp = rand() * vol * 1.4;
+    const wickDown = rand() * vol * 1.4;
     const high = Number((Math.max(open, close) + wickUp).toFixed(config.digits));
-    const low = Number((Math.min(open, close) - wickDown).toFixed(config.digits));
+    const low = Number(
+      Math.max(config.point * 5, Math.min(open, close) - wickDown).toFixed(config.digits)
+    );
     const volume = Math.floor(50 + rand() * 350);
 
     candles.unshift({
@@ -676,7 +791,6 @@ export function generateHistoricalCandles(
     cursorClose = open;
   }
 
-  // Ensure the final candle's close matches currentBid
   if (candles.length > 0) {
     const last = candles[candles.length - 1];
     last.close = Number(currentBid.toFixed(config.digits));
@@ -686,3 +800,64 @@ export function generateHistoricalCandles(
 
   return candles;
 }
+
+/**
+ * Seamlessly prepends older historical candles before existingCandles[0]
+ * so scrolling backwards in the chart never runs out of candles.
+ */
+export function prependOlderCandles(
+  existingCandles: Candle[],
+  config: SymbolConfig,
+  tf: Timeframe,
+  countToPrepend: number = 600
+): Candle[] {
+  if (existingCandles.length === 0) {
+    return generateHistoricalCandles(config, tf, config.baseBid, countToPrepend);
+  }
+
+  const oldest = existingCandles[0];
+  const stepSec = getTimeframeSeconds(tf);
+  const tfMultiplier = Math.sqrt(stepSec / 60);
+  const vol = config.volatility * tfMultiplier;
+
+  let seed =
+    (oldest.time ^
+      config.symbol.split('').reduce((acc, ch) => acc + ch.charCodeAt(0) * 37, 0)) >>>
+    0;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
+  const prepended: Candle[] = [];
+  let cursorClose = oldest.open;
+
+  for (let i = 1; i <= countToPrepend; i++) {
+    const time = oldest.time - i * stepSec;
+    const wave = Math.sin(i * 0.11) * vol * 0.35;
+    const delta = (rand() - 0.495) * vol * 2.0 + wave;
+    const open = Number(Math.max(config.point * 10, cursorClose - delta).toFixed(config.digits));
+    const close = Number(cursorClose.toFixed(config.digits));
+    const wickUp = rand() * vol * 1.35;
+    const wickDown = rand() * vol * 1.35;
+    const high = Number((Math.max(open, close) + wickUp).toFixed(config.digits));
+    const low = Number(
+      Math.max(config.point * 5, Math.min(open, close) - wickDown).toFixed(config.digits)
+    );
+    const volume = Math.floor(50 + rand() * 320);
+
+    prepended.unshift({
+      time,
+      open,
+      high,
+      low,
+      close,
+      volume,
+    });
+
+    cursorClose = open;
+  }
+
+  return [...prepended, ...existingCandles];
+}
+

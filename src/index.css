@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
@@ -28,7 +27,8 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #0D1117;
+    background-color: #FFFFFF;
+    color: #000000;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
     font-variant-numeric: tabular-nums;
     overscroll-behavior: none;
@@ -36,11 +36,18 @@
 }
 
 .pt-safe {
-  padding-top: max(env(safe-area-inset-top, 0px), 10px);
+  padding-top: max(env(safe-area-inset-top, 0px), 8px);
 }
 
 .pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 6px);
+}
+
+/* Condensed bold symbol look matching MT5 iOS */
+.mt5-symbol-font {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Arial Narrow", "Helvetica Neue", sans-serif;
+  font-stretch: condensed;
+  letter-spacing: -0.03em;
 }
 
 /* Hide scrollbars while keeping smooth native momentum scrolling */

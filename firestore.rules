@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidPosition(data, userId) {
+      let requiredKeys = [
+        'userId', 'ticketId', 'symbol', 'isBuy', 'lots',
+        'openPrice', 'currentPrice', 'profit', 'openTime',
+        'createdAt', 'updatedAt'
+      ];
+      let allowedKeys = [
+        'userId', 'ticketId', 'symbol', 'isBuy', 'lots',
+        'openPrice', 'currentPrice', 'sl', 'tp', 'profit',
+        'openTime', 'createdAt', 'updatedAt'
+      ];
+      return data.keys().hasAll(requiredKeys)
+        && data.keys().hasOnly(allowedKeys)
+        && data.userId is string && data.userId == userId
+        && data.ticketId is string && data.ticketId.size() >= 1 && data.ticketId.size() <= 40
+        && data.symbol is string && data.symbol.size() >= 2 && data.symbol.size() <= 20
+        && data.isBuy is bool
+        && data.lots is number && data.lots >= 0.01 && data.lots <= 1000
+        && data.openPrice is number && data.openPrice >= 0
+        && data.currentPrice is number && data.currentPrice >= 0
+        && (!('sl' in data) || data.sl == null || (data.sl is number && data.sl >= 0))
+        && (!('tp' in data) || data.tp == null || (data.tp is number && data.tp >= 0))
+        && data.profit is number
+        && data.openTime is string && data.openTime.size() >= 1 && data.openTime.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidHistoryTrade(data, userId) {
+      let requiredKeys = [
+        'userId', 'ticketId', 'symbol', 'isBuy', 'lots',
+        'openPrice', 'closePrice', 'profit', 'openTime', 'closeTime',
+        'commission', 'swap', 'createdAt', 'updatedAt'
+      ];
+      return data.keys().hasAll(requiredKeys)
+        && data.keys().hasOnly(requiredKeys)
+        && data.userId is string && data.userId == userId
+        && data.ticketId is string && data.ticketId.size() >= 1 && data.ticketId.size() <= 40
+        && data.symbol is string && data.symbol.size() >= 2 && data.symbol.size() <= 80
+        && data.isBuy is bool
+        && data.lots is number && data.lots >= 0 && data.lots <= 1000
+        && data.openPrice is number && data.openPrice >= 0
+        && data.closePrice is number && data.closePrice >= 0
+        && data.profit is number
+        && data.openTime is string && data.openTime.size() >= 1 && data.openTime.size() <= 160
+        && data.closeTime is string && data.closeTime.size() >= 1 && data.closeTime.size() <= 64
+        && data.commission is number
+        && data.swap is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAccountDoc(data, userId) {
+      let requiredKeys = [
+        'userId', 'balance', 'deposit', 'realizedProfit',
+        'totalSwap', 'totalCommission', 'accountName', 'brokerName',
+        'accountId', 'serverName', 'isReal', 'createdAt', 'updatedAt'
+      ];
+      return data.keys().hasAll(requiredKeys)
+        && data.keys().hasOnly(requiredKeys)
+        && data.userId is string && data.userId == userId
+        && data.balance is number
+        && data.deposit is number
+        && data.realizedProfit is number
+        && data.totalSwap is number
+        && data.totalCommission is number
+        && data.accountName is string && data.accountName.size() >= 1 && data.accountName.size() <= 100
+        && data.brokerName is string && data.brokerName.size() >= 1 && data.brokerName.size() <= 120
+        && data.accountId is string && data.accountId.size() >= 1 && data.accountId.size() <= 40
+        && data.serverName is string && data.serverName.size() >= 1 && data.serverName.size() <= 100
+        && data.isReal is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      match /positions/{positionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidPosition(request.resource.data, userId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidPosition(request.resource.data, userId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId);
+      }
+
+      match /history/{historyId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidHistoryTrade(request.resource.data, userId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidHistoryTrade(request.resource.data, userId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId);
+      }
+
+      match /accounts/{accountDocId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidAccountDoc(request.resource.data, userId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidAccountDoc(request.resource.data, userId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

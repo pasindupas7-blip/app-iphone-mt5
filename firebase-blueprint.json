@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "TradePositionDoc": {
+      "title": "TradePositionDoc",
+      "description": "An active open trading position owned by a specific authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user who owns this position." },
+        "ticketId": { "type": "string", "description": "MT5 ticket identifier." },
+        "symbol": { "type": "string", "description": "Trading instrument symbol (e.g., XAUUSD, EURUSD)." },
+        "isBuy": { "type": "boolean", "description": "True for BUY order, false for SELL order." },
+        "lots": { "type": "number", "description": "Order volume in lots." },
+        "openPrice": { "type": "number", "description": "Execution price at position open." },
+        "currentPrice": { "type": "number", "description": "Latest market price for this position." },
+        "sl": { "type": "number", "description": "Optional Stop Loss price level." },
+        "tp": { "type": "number", "description": "Optional Take Profit price level." },
+        "profit": { "type": "number", "description": "Current floating profit/loss in USD." },
+        "openTime": { "type": "string", "description": "Formatted open timestamp string." },
+        "createdAt": { "type": "timestamp", "description": "Server timestamp when position was created." },
+        "updatedAt": { "type": "timestamp", "description": "Server timestamp when position was last updated." }
+      },
+      "required": [
+        "userId", "ticketId", "symbol", "isBuy", "lots",
+        "openPrice", "currentPrice", "profit", "openTime",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "HistoryTradeDoc": {
+      "title": "HistoryTradeDoc",
+      "description": "A closed historical trade deal owned by a specific authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user who owns this history record." },
+        "ticketId": { "type": "string", "description": "MT5 deal/order ticket identifier." },
+        "symbol": { "type": "string", "description": "Trading instrument symbol (or 'WDR:<comment>' for withdrawal entries)." },
+        "isBuy": { "type": "boolean", "description": "True if the closed position was a BUY, false if SELL." },
+        "lots": { "type": "number", "description": "Closed volume in lots (0.0 for withdrawals)." },
+        "openPrice": { "type": "number", "description": "Entry price of the trade." },
+        "closePrice": { "type": "number", "description": "Closing price of the trade." },
+        "profit": { "type": "number", "description": "Realized profit or loss in USD (negative for withdrawals)." },
+        "openTime": {
+          "type": "string",
+          "description": "Encoded string: 'openTime|sl|tp|ticketId|hitCode' for trades (hitCode: 1=SL, 2=TP, 0=none), or 'closeTime|ticketId' for withdrawals."
+        },
+        "closeTime": { "type": "string", "description": "Formatted close timestamp." },
+        "commission": { "type": "number", "description": "Commission charged for the deal." },
+        "swap": { "type": "number", "description": "Swap fee applied to the deal." },
+        "createdAt": { "type": "timestamp", "description": "Server timestamp when history entry was recorded." },
+        "updatedAt": { "type": "timestamp", "description": "Server timestamp when history entry was updated." }
+      },
+      "required": [
+        "userId", "ticketId", "symbol", "isBuy", "lots",
+        "openPrice", "closePrice", "profit", "openTime", "closeTime",
+        "commission", "swap", "createdAt", "updatedAt"
+      ]
+    },
+    "AccountDoc": {
+      "title": "AccountDoc",
+      "description": "Trading account summary and profile settings for an authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the account owner." },
+        "balance": { "type": "number", "description": "Account balance in USD." },
+        "deposit": { "type": "number", "description": "Total deposit amount in USD." },
+        "realizedProfit": { "type": "number", "description": "Total realized profit across closed trades." },
+        "totalSwap": { "type": "number", "description": "Cumulative swap fees." },
+        "totalCommission": { "type": "number", "description": "Cumulative commissions." },
+        "accountName": { "type": "string", "description": "Display name on the trading account." },
+        "brokerName": { "type": "string", "description": "Broker company name." },
+        "accountId": { "type": "string", "description": "Numeric MT5 account login ID." },
+        "serverName": { "type": "string", "description": "Trading server name." },
+        "isReal": { "type": "boolean", "description": "Whether the badge displays Real or Demo." },
+        "createdAt": { "type": "timestamp", "description": "Server timestamp when account doc was created." },
+        "updatedAt": { "type": "timestamp", "description": "Server timestamp when account doc was updated." }
+      },
+      "required": [
+        "userId", "balance", "deposit", "realizedProfit",
+        "totalSwap", "totalCommission", "accountName", "brokerName",
+        "accountId", "serverName", "isReal", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/positions/{positionId}": {
+      "schema": { "$ref": "#/entities/TradePositionDoc" },
+      "description": "Active open trading positions scoped to a specific user."
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": { "$ref": "#/entities/HistoryTradeDoc" },
+      "description": "Closed historical trades scoped to a specific user."
+    },
+    "/users/{userId}/accounts/{accountDocId}": {
+      "schema": { "$ref": "#/entities/AccountDoc" },
+      "description": "Account balance and profile settings scoped to a specific user."
+    }
+  }
+}

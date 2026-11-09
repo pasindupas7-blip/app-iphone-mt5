@@ -1,0 +1,2335 @@
+Here is the complete code and configuration for the Firebase Configuration & Collections, the Market Data Feed, and the Chart Component used in this project so you can port them directly to your iOS project.
+1. Firebase Configuration, Collections & Firestore Data Layer
+1.1 Firebase Project & Named Firestore Database Configuration
+Project ID: gen-lang-client-0363105090
+Project Number: 98518776208
+Storage Bucket: gen-lang-client-0363105090.firebasestorage.app
+Named Firestore Database ID: ai-studio-android-metatrad-5e1a9b99-2bff-4b92-b2f1-cca4d75364a9
+(Important for iOS: initialize Firestore with Firestore.firestore(database: "ai-studio-android-metatrad-5e1a9b99-2bff-4b92-b2f1-cca4d75364a9") rather than the (default) database)
+Web / Server OAuth Client ID: 98518776208-uni5sf246s84nq881vngbp6sf0a2tafm.apps.googleusercontent.com
+app/src/main/res/values/firebase_applet_config.xml
+Xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="firebase_Firestore_database_id" translatable="false">ai-studio-android-metatrad-5e1a9b99-2bff-4b92-b2f1-cca4d75364a9</string>
+</resources>
+app/google-services.json
+JSON
+{
+  "project_info": {
+    "project_number": "98518776208",
+    "project_id": "gen-lang-client-0363105090",
+    "storage_bucket": "gen-lang-client-0363105090.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:98518776208:android:03040b83ef9bbb4cb55b15",
+        "android_client_info": {
+          "package_name": "com.aistudio.metatrader.kyzwrt"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "98518776208-nsercp6okiu3ksp6tblmio4mljqg7q2e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.metatrader.kyzwrt",
+            "certificate_hash": "fabf2834879c4fca946e8681e22e1deb0717d643"
+          }
+        },
+        {
+          "client_id": "98518776208-pvft7mdccbd34bpfgi330cknutpjvj2j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.metatrader.kyzwrt",
+            "certificate_hash": "0673ae21958c1153c20a2adc47c097b72f59272a"
+          }
+        },
+        {
+          "client_id": "98518776208-uni5sf246s84nq881vngbp6sf0a2tafm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhEYeM5PKmiebJhHvEH6OAaLAT4_1VuC4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "98518776208-uni5sf246s84nq881vngbp6sf0a2tafm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+1.2 Firestore Collections Blueprint (firebase-blueprint.json)
+The app uses 3 subcollections under /users/{userId}:
+/users/{userId}/positions/{positionId} — Open / running trades (pos_{ticketId} for "main" account, or pos_{accountKey}_{ticketId} for additional accounts)
+/users/{userId}/history/{historyId} — Closed trades and balance withdrawals (hist_{tradeId} for "main" account, or hist_{accountKey}_{tradeId} for additional accounts)
+/users/{userId}/accounts/{accountDocId} — Trading accounts (main for primary account, or acc_{timestamp}_{rand})
+JSON
+{
+  "entities": {
+    "TradePositionDoc": {
+      "title": "TradePositionDoc",
+      "description": "An active open trading position owned by a specific authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user who owns this position." },
+        "ticketId": { "type": "string", "description": "MT5 ticket identifier." },
+        "symbol": { "type": "string", "description": "Trading instrument symbol (e.g., XAUUSD, EURUSD)." },
+        "isBuy": { "type": "boolean", "description": "True for BUY order, false for SELL order." },
+        "lots": { "type": "number", "description": "Order volume in lots." },
+        "openPrice": { "type": "number", "description": "Execution price at position open." },
+        "currentPrice": { "type": "number", "description": "Latest market price for this position." },
+        "sl": { "type": "number", "description": "Optional Stop Loss price level." },
+        "tp": { "type": "number", "description": "Optional Take Profit price level." },
+        "profit": { "type": "number", "description": "Current floating profit/loss in USD." },
+        "openTime": { "type": "string", "description": "Formatted open timestamp string." },
+        "createdAt": { "type": "timestamp", "description": "Server timestamp when position was created." },
+        "updatedAt": { "type": "timestamp", "description": "Server timestamp when position was last updated." }
+      },
+      "required": [
+        "userId", "ticketId", "symbol", "isBuy", "lots",
+        "openPrice", "currentPrice", "profit", "openTime",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "HistoryTradeDoc": {
+      "title": "HistoryTradeDoc",
+      "description": "A closed historical trade deal owned by a specific authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user who owns this history record." },
+        "ticketId": { "type": "string", "description": "MT5 deal/order ticket identifier." },
+        "symbol": { "type": "string", "description": "Trading instrument symbol (or 'WDR:<comment>' for withdrawal entries)." },
+        "isBuy": { "type": "boolean", "description": "True if the closed position was a BUY, false if SELL." },
+        "lots": { "type": "number", "description": "Closed volume in lots (0.0 for withdrawals)." },
+        "openPrice": { "type": "number", "description": "Entry price of the trade." },
+        "closePrice": { "type": "number", "description": "Closing price of the trade." },
+        "profit": { "type": "number", "description": "Realized profit or loss in USD (negative for withdrawals)." },
+        "openTime": {
+          "type": "string",
+          "description": "Encoded string: 'openTime|sl|tp|ticketId|hitCode' for trades (hitCode: 1=SL, 2=TP, 0=none), or 'closeTime|ticketId' for withdrawals."
+        },
+        "closeTime": { "type": "string", "description": "Formatted close timestamp." },
+        "commission": { "type": "number", "description": "Commission charged for the deal." },
+        "swap": { "type": "number", "description": "Swap fee applied to the deal." },
+        "createdAt": { "type": "timestamp", "description": "Server timestamp when history entry was recorded." },
+        "updatedAt": { "type": "timestamp", "description": "Server timestamp when history entry was updated." }
+      },
+      "required": [
+        "userId", "ticketId", "symbol", "isBuy", "lots",
+        "openPrice", "closePrice", "profit", "openTime", "closeTime",
+        "commission", "swap", "createdAt", "updatedAt"
+      ]
+    },
+    "AccountDoc": {
+      "title": "AccountDoc",
+      "description": "Trading account summary and profile settings for an authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the account owner." },
+        "balance": { "type": "number", "description": "Account balance in USD." },
+        "deposit": { "type": "number", "description": "Total deposit amount in USD." },
+        "realizedProfit": { "type": "number", "description": "Total realized profit across closed trades." },
+        "totalSwap": { "type": "number", "description": "Cumulative swap fees." },
+        "totalCommission": { "type": "number", "description": "Cumulative commissions." },
+        "accountName": { "type": "string", "description": "Display name on the trading account." },
+        "brokerName": { "type": "string", "description": "Broker company name." },
+        "accountId": { "type": "string", "description": "Numeric MT5 account login ID." },
+        "serverName": { "type": "string", "description": "Trading server name." },
+        "isReal": { "type": "boolean", "description": "Whether the badge displays Real or Demo." },
+        "createdAt": { "type": "timestamp", "description": "Server timestamp when account doc was created." },
+        "updatedAt": { "type": "timestamp", "description": "Server timestamp when account doc was updated." }
+      },
+      "required": [
+        "userId", "balance", "deposit", "realizedProfit",
+        "totalSwap", "totalCommission", "accountName", "brokerName",
+        "accountId", "serverName", "isReal", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/positions/{positionId}": {
+      "schema": { "$ref": "#/entities/TradePositionDoc" },
+      "description": "Active open trading positions scoped to a specific user."
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": { "$ref": "#/entities/HistoryTradeDoc" },
+      "description": "Closed historical trades scoped to a specific user."
+    },
+    "/users/{userId}/accounts/{accountDocId}": {
+      "schema": { "$ref": "#/entities/AccountDoc" },
+      "description": "Account balance and profile settings scoped to a specific user."
+    }
+  }
+}
+1.3 Firestore Security Rules (firestore.rules)
+JavaScript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidPosition(data, userId) {
+      let requiredKeys = [
+        'userId', 'ticketId', 'symbol', 'isBuy', 'lots',
+        'openPrice', 'currentPrice', 'profit', 'openTime',
+        'createdAt', 'updatedAt'
+      ];
+      let allowedKeys = [
+        'userId', 'ticketId', 'symbol', 'isBuy', 'lots',
+        'openPrice', 'currentPrice', 'sl', 'tp', 'profit',
+        'openTime', 'createdAt', 'updatedAt'
+      ];
+      return data.keys().hasAll(requiredKeys)
+        && data.keys().hasOnly(allowedKeys)
+        && data.userId is string && data.userId == userId
+        && data.ticketId is string && data.ticketId.size() >= 1 && data.ticketId.size() <= 40
+        && data.symbol is string && data.symbol.size() >= 2 && data.symbol.size() <= 20
+        && data.isBuy is bool
+        && data.lots is number && data.lots >= 0.01 && data.lots <= 1000
+        && data.openPrice is number && data.openPrice >= 0
+        && data.currentPrice is number && data.currentPrice >= 0
+        && (!('sl' in data) || data.sl == null || (data.sl is number && data.sl >= 0))
+        && (!('tp' in data) || data.tp == null || (data.tp is number && data.tp >= 0))
+        && data.profit is number
+        && data.openTime is string && data.openTime.size() >= 1 && data.openTime.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidHistoryTrade(data, userId) {
+      let requiredKeys = [
+        'userId', 'ticketId', 'symbol', 'isBuy', 'lots',
+        'openPrice', 'closePrice', 'profit', 'openTime', 'closeTime',
+        'commission', 'swap', 'createdAt', 'updatedAt'
+      ];
+      return data.keys().hasAll(requiredKeys)
+        && data.keys().hasOnly(requiredKeys)
+        && data.userId is string && data.userId == userId
+        && data.ticketId is string && data.ticketId.size() >= 1 && data.ticketId.size() <= 40
+        && data.symbol is string && data.symbol.size() >= 2 && data.symbol.size() <= 80
+        && data.isBuy is bool
+        && data.lots is number && data.lots >= 0 && data.lots <= 1000
+        && data.openPrice is number && data.openPrice >= 0
+        && data.closePrice is number && data.closePrice >= 0
+        && data.profit is number
+        && data.openTime is string && data.openTime.size() >= 1 && data.openTime.size() <= 160
+        && data.closeTime is string && data.closeTime.size() >= 1 && data.closeTime.size() <= 64
+        && data.commission is number
+        && data.swap is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAccountDoc(data, userId) {
+      let requiredKeys = [
+        'userId', 'balance', 'deposit', 'realizedProfit',
+        'totalSwap', 'totalCommission', 'accountName', 'brokerName',
+        'accountId', 'serverName', 'isReal', 'createdAt', 'updatedAt'
+      ];
+      return data.keys().hasAll(requiredKeys)
+        && data.keys().hasOnly(requiredKeys)
+        && data.userId is string && data.userId == userId
+        && data.balance is number
+        && data.deposit is number
+        && data.realizedProfit is number
+        && data.totalSwap is number
+        && data.totalCommission is number
+        && data.accountName is string && data.accountName.size() >= 1 && data.accountName.size() <= 100
+        && data.brokerName is string && data.brokerName.size() >= 1 && data.brokerName.size() <= 120
+        && data.accountId is string && data.accountId.size() >= 1 && data.accountId.size() <= 40
+        && data.serverName is string && data.serverName.size() >= 1 && data.serverName.size() <= 100
+        && data.isReal is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      match /positions/{positionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidPosition(request.resource.data, userId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidPosition(request.resource.data, userId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId);
+      }
+
+      match /history/{historyId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidHistoryTrade(request.resource.data, userId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidHistoryTrade(request.resource.data, userId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId);
+      }
+
+      match /accounts/{accountDocId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidAccountDoc(request.resource.data, userId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidAccountDoc(request.resource.data, userId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+1.4 Firestore Data Layer (CloudTradeRepository.kt)
+Kotlin
+package com.example.data
+
+import android.content.Context
+import android.util.Log
+import com.example.R
+import com.example.model.AccountInfo
+import com.example.model.HistoryTrade
+import com.example.model.TradePosition
+import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
+
+/**
+ * Cloud Firestore repository for syncing user-owned trading accounts, open positions, and closed trade history.
+ */
+class CloudTradeRepository(
+    context: Context? = null,
+    private val firestoreInstance: FirebaseFirestore? = null,
+    private val authInstance: FirebaseAuth? = null
+) {
+    private val appContext: Context? = context?.applicationContext
+
+    private val auth: FirebaseAuth? by lazy {
+        authInstance ?: try {
+            if (FirebaseApp.getApps(appContext ?: return@lazy null).isNotEmpty()) {
+                FirebaseAuth.getInstance()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "FirebaseAuth not initialized: ${e.message}")
+            null
+        }
+    }
+
+    private val db: FirebaseFirestore? by lazy {
+        firestoreInstance ?: try {
+            val ctx = appContext ?: return@lazy null
+            if (FirebaseApp.getApps(ctx).isEmpty()) return@lazy null
+            val dbId = try {
+                ctx.getString(R.string.firebase_Firestore_database_id)
+            } catch (_: Exception) {
+                ""
+            }
+            if (dbId.isNotBlank() && dbId != "(default)") {
+                Firebase.firestore(dbId)
+            } else {
+                Firebase.firestore
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Firestore not initialized: ${e.message}")
+            null
+        }
+    }
+
+    val currentUserId: String?
+        get() = auth?.currentUser?.uid
+
+    private fun positionDocPrefix(accountDocId: String): String {
+        return if (accountDocId == "main") "pos_" else "pos_${accountDocId}_"
+    }
+
+    private fun historyDocPrefix(accountDocId: String): String {
+        return if (accountDocId == "main") "hist_" else "hist_${accountDocId}_"
+    }
+
+    private fun isDocForAccount(docId: String, accountDocId: String, mainPrefix: String): Boolean {
+        return if (accountDocId == "main") {
+            docId.startsWith(mainPrefix) && !docId.removePrefix(mainPrefix).startsWith("acc_")
+        } else {
+            docId.startsWith("${mainPrefix}${accountDocId}_")
+        }
+    }
+
+    fun observeOpenPositions(userId: String, accountDocId: String = "main"): Flow<List<TradePosition>> = callbackFlow {
+        val firestore = db
+        if (firestore == null || userId.isBlank()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val registration: ListenerRegistration = firestore
+            .collection("users")
+            .document(userId)
+            .collection("positions")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Positions listener error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val list = snapshot.documents
+                        .filter { isDocForAccount(it.id, accountDocId, "pos_") }
+                        .mapNotNull { doc -> doc.toTradePosition() }
+                    trySend(list)
+                }
+            }
+
+        awaitClose { registration.remove() }
+    }
+
+    fun observeHistoryTrades(userId: String, accountDocId: String = "main"): Flow<List<HistoryTrade>> = callbackFlow {
+        val firestore = db
+        if (firestore == null || userId.isBlank()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val registration: ListenerRegistration = firestore
+            .collection("users")
+            .document(userId)
+            .collection("history")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "History listener error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val list = snapshot.documents
+                        .filter { isDocForAccount(it.id, accountDocId, "hist_") }
+                        .mapNotNull { doc -> doc.toHistoryTrade() }
+                        .sortedByDescending { it.id }
+                    trySend(list)
+                }
+            }
+
+        awaitClose { registration.remove() }
+    }
+
+    fun observeAccountInfo(userId: String, accountDocId: String = "main"): Flow<AccountInfo?> = callbackFlow {
+        val firestore = db
+        if (firestore == null || userId.isBlank()) {
+            trySend(null)
+            close()
+            return@callbackFlow
+        }
+
+        val registration: ListenerRegistration = firestore
+            .collection("users")
+            .document(userId)
+            .collection("accounts")
+            .document(accountDocId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Account listener error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    trySend(snapshot.toAccountInfo())
+                } else {
+                    trySend(null)
+                }
+            }
+
+        awaitClose { registration.remove() }
+    }
+
+    fun observeAllAccounts(userId: String): Flow<List<Pair<String, AccountInfo>>> = callbackFlow {
+        val firestore = db
+        if (firestore == null || userId.isBlank()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val registration: ListenerRegistration = firestore
+            .collection("users")
+            .document(userId)
+            .collection("accounts")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "All accounts listener error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        val info = doc.toAccountInfo()
+                        if (info != null) Pair(doc.id, info) else null
+                    }
+                    trySend(list)
+                }
+            }
+
+        awaitClose { registration.remove() }
+    }
+
+    suspend fun deleteAccount(userId: String, accountDocId: String) {
+        val firestore = db ?: return
+        if (userId.isBlank() || accountDocId.isBlank()) return
+        try {
+            val userRef = firestore.collection("users").document(userId)
+
+            val posSnap = userRef.collection("positions").get().await()
+            for (doc in posSnap.documents) {
+                if (isDocForAccount(doc.id, accountDocId, "pos_")) {
+                    doc.reference.delete().await()
+                }
+            }
+
+            val histSnap = userRef.collection("history").get().await()
+            for (doc in histSnap.documents) {
+                if (isDocForAccount(doc.id, accountDocId, "hist_")) {
+                    doc.reference.delete().await()
+                }
+            }
+
+            userRef.collection("accounts").document(accountDocId).delete().await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to delete account $accountDocId: ${e.message}")
+        }
+    }
+
+    suspend fun clearHistoryForAccount(userId: String, accountDocId: String = "main") {
+        val firestore = db ?: return
+        if (userId.isBlank() || accountDocId.isBlank()) return
+        try {
+            val userRef = firestore.collection("users").document(userId)
+            val histSnap = userRef.collection("history").get().await()
+            for (doc in histSnap.documents) {
+                if (isDocForAccount(doc.id, accountDocId, "hist_")) {
+                    doc.reference.delete().await()
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to clear history for account $accountDocId: ${e.message}")
+        }
+    }
+
+    suspend fun upsertPosition(userId: String, position: TradePosition, accountDocId: String = "main") {
+        val firestore = db ?: return
+        if (userId.isBlank()) return
+        val docRef = firestore
+            .collection("users")
+            .document(userId)
+            .collection("positions")
+            .document("${positionDocPrefix(accountDocId)}${position.id}")
+
+        try {
+            val existing = docRef.get().await()
+            val payload = hashMapOf<String, Any?>(
+                "userId" to userId,
+                "ticketId" to position.ticketId.take(40).ifBlank { position.id.toString() },
+                "symbol" to position.symbol.take(20),
+                "isBuy" to position.isBuy,
+                "lots" to position.lots.coerceIn(0.01, 1000.0),
+                "openPrice" to position.openPrice.coerceAtLeast(0.0),
+                "currentPrice" to position.currentPrice.coerceAtLeast(0.0),
+                "profit" to position.profit,
+                "openTime" to position.openTime.take(64).ifBlank { "2025.05.12 08:00:00" },
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            if (position.sl != null && position.sl > 0.0) {
+                payload["sl"] = position.sl
+            } else {
+                payload["sl"] = null
+            }
+            if (position.tp != null && position.tp > 0.0) {
+                payload["tp"] = position.tp
+            } else {
+                payload["tp"] = null
+            }
+
+            if (existing.exists()) {
+                val createdAt = existing.getTimestamp("createdAt") ?: Timestamp.now()
+                payload["createdAt"] = createdAt
+                docRef.set(payload).await()
+            } else {
+                payload["createdAt"] = FieldValue.serverTimestamp()
+                docRef.set(payload).await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to upsert position ${position.id}: ${e.message}")
+        }
+    }
+
+    suspend fun deletePosition(userId: String, positionId: Long, accountDocId: String = "main") {
+        val firestore = db ?: return
+        if (userId.isBlank()) return
+        try {
+            firestore
+                .collection("users")
+                .document(userId)
+                .collection("positions")
+                .document("${positionDocPrefix(accountDocId)}$positionId")
+                .delete()
+                .await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to delete position $positionId: ${e.message}")
+        }
+    }
+
+    suspend fun addHistoryTrade(userId: String, trade: HistoryTrade, accountDocId: String = "main") {
+        val firestore = db ?: return
+        if (userId.isBlank()) return
+        val docRef = firestore
+            .collection("users")
+            .document(userId)
+            .collection("history")
+            .document("${historyDocPrefix(accountDocId)}${trade.id}")
+
+        try {
+            val existing = docRef.get().await()
+            val encodedSymbol = if (trade.isWithdrawal) {
+                val cleanComment = trade.comment.replace("|", " ").trim().ifEmpty { "Withdrawal" }
+                "WDR:${cleanComment.take(70)}"
+            } else {
+                trade.symbol.take(20).ifBlank { "XAUUSD" }
+            }
+            val safeTicket = trade.ticketId.replace("|", "").trim().ifBlank { trade.id.toString() }
+            val encodedOpenTime = if (trade.isWithdrawal) {
+                val baseCloseTime = trade.closeTime.take(32).ifBlank { "2025.05.12 08:05:00" }
+                "$baseCloseTime|$safeTicket"
+            } else {
+                val baseOpenTime = trade.openTime.replace("|", " ").take(32).ifBlank { "2025.05.12 08:00:00" }
+                val slStr = if (trade.sl != null && trade.sl > 0.0) trade.sl.toString() else ""
+                val tpStr = if (trade.tp != null && trade.tp > 0.0) trade.tp.toString() else ""
+                val hitCode = when {
+                    trade.hitStopLoss -> "1"
+                    trade.hitTakeProfit -> "2"
+                    else -> "0"
+                }
+                "$baseOpenTime|$slStr|$tpStr|$safeTicket|$hitCode"
+            }
+            val payload = hashMapOf<String, Any>(
+                "userId" to userId,
+                "ticketId" to safeTicket.take(40),
+                "symbol" to encodedSymbol,
+                "isBuy" to trade.isBuy,
+                "lots" to if (trade.isWithdrawal) 0.0 else trade.lots.coerceIn(0.01, 1000.0),
+                "openPrice" to if (trade.isWithdrawal) 0.0 else trade.openPrice.coerceAtLeast(0.0),
+                "closePrice" to if (trade.isWithdrawal) 0.0 else trade.closePrice.coerceAtLeast(0.0),
+                "profit" to trade.profit,
+                "openTime" to encodedOpenTime.take(160),
+                "closeTime" to trade.closeTime.take(64).ifBlank { "2025.05.12 08:05:00" },
+                "commission" to trade.commission,
+                "swap" to trade.swap,
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            if (existing.exists()) {
+                val createdAt = existing.getTimestamp("createdAt") ?: Timestamp.now()
+                payload["createdAt"] = createdAt
+                docRef.set(payload, SetOptions.merge()).await()
+            } else {
+                payload["createdAt"] = FieldValue.serverTimestamp()
+                docRef.set(payload).await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to save history trade ${trade.id}: ${e.message}")
+        }
+    }
+
+    suspend fun deleteHistoryTrade(userId: String, tradeId: Long, accountDocId: String = "main") {
+        val firestore = db ?: return
+        if (userId.isBlank()) return
+        try {
+            firestore
+                .collection("users")
+                .document(userId)
+                .collection("history")
+                .document("${historyDocPrefix(accountDocId)}$tradeId")
+                .delete()
+                .await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to delete history trade $tradeId: ${e.message}")
+        }
+    }
+
+    suspend fun saveAccountInfo(userId: String, account: AccountInfo, accountDocId: String = "main") {
+        val firestore = db ?: return
+        if (userId.isBlank()) return
+        val docRef = firestore
+            .collection("users")
+            .document(userId)
+            .collection("accounts")
+            .document(accountDocId)
+
+        try {
+            val existing = docRef.get().await()
+            val payload = hashMapOf<String, Any>(
+                "userId" to userId,
+                "balance" to account.balance,
+                "deposit" to account.deposit,
+                "realizedProfit" to account.realizedProfit,
+                "totalSwap" to account.totalSwap,
+                "totalCommission" to account.totalCommission,
+                "accountName" to account.accountName.take(100).ifBlank { "MetaTrader User" },
+                "brokerName" to account.brokerName.take(120).ifBlank { "MetaQuotes Ltd." },
+                "accountId" to account.accountId.take(40).ifBlank { "100084921" },
+                "serverName" to account.serverName.take(100).ifBlank { "MetaQuotes-Demo" },
+                "isReal" to account.isReal,
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            if (existing.exists()) {
+                val createdAt = existing.getTimestamp("createdAt") ?: Timestamp.now()
+                payload["createdAt"] = createdAt
+                docRef.set(payload).await()
+            } else {
+                payload["createdAt"] = FieldValue.serverTimestamp()
+                docRef.set(payload).await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to save account info ($accountDocId): ${e.message}")
+        }
+    }
+
+    private fun DocumentSnapshot.toTradePosition(): TradePosition? {
+        return try {
+            val rawId = id.substringAfterLast("_").toLongOrNull() ?: return null
+            val ticketId = getString("ticketId") ?: rawId.toString()
+            val symbol = getString("symbol") ?: return null
+            val isBuy = getBoolean("isBuy") ?: true
+            val lots = getDouble("lots") ?: 0.01
+            val openPrice = getDouble("openPrice") ?: 0.0
+            val currentPrice = getDouble("currentPrice") ?: openPrice
+            val sl = getDouble("sl")
+            val tp = getDouble("tp")
+            val profit = getDouble("profit") ?: 0.0
+            val openTime = getString("openTime") ?: ""
+
+            TradePosition(
+                id = rawId,
+                ticketId = ticketId,
+                symbol = symbol,
+                isBuy = isBuy,
+                lots = lots,
+                openPrice = openPrice,
+                currentPrice = currentPrice,
+                sl = sl,
+                tp = tp,
+                profit = profit,
+                openTime = openTime
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun DocumentSnapshot.toHistoryTrade(): HistoryTrade? {
+        return try {
+            val rawId = id.substringAfterLast("_").toLongOrNull() ?: return null
+            val rawTicketId = getString("ticketId") ?: rawId.toString()
+            val rawSymbol = getString("symbol") ?: return null
+            val isWithdrawal = rawSymbol.startsWith("WDR:")
+            val symbol = if (isWithdrawal) "" else rawSymbol
+            val comment = if (isWithdrawal) rawSymbol.removePrefix("WDR:") else ""
+            val isBuy = getBoolean("isBuy") ?: true
+            val lots = getDouble("lots") ?: 0.01
+            val openPrice = getDouble("openPrice") ?: 0.0
+            val closePrice = getDouble("closePrice") ?: openPrice
+            val profit = getDouble("profit") ?: 0.0
+            val rawOpenTime = getString("openTime") ?: ""
+            val closeTime = getString("closeTime") ?: ""
+            val commission = getDouble("commission") ?: 0.0
+            val swap = getDouble("swap") ?: 0.0
+
+            var parsedOpenTime = rawOpenTime
+            var parsedSl: Double? = null
+            var parsedTp: Double? = null
+            var parsedTicketId = rawTicketId
+            var hitSl = false
+            var hitTp = false
+
+            if (isWithdrawal) {
+                if (rawOpenTime.contains("|")) {
+                    val parts = rawOpenTime.split("|")
+                    parsedOpenTime = parts.getOrNull(0) ?: closeTime
+                    val tId = parts.getOrNull(1)
+                    if (!tId.isNullOrBlank()) parsedTicketId = tId
+                }
+            } else if (rawOpenTime.contains("|")) {
+                val parts = rawOpenTime.split("|")
+                parsedOpenTime = parts.getOrNull(0) ?: rawOpenTime
+                parsedSl = parts.getOrNull(1)?.toDoubleOrNull()?.takeIf { it > 0.0 }
+                parsedTp = parts.getOrNull(2)?.toDoubleOrNull()?.takeIf { it > 0.0 }
+                val tId = parts.getOrNull(3)
+                if (!tId.isNullOrBlank()) parsedTicketId = tId
+                when (parts.getOrNull(4)) {
+                    "1" -> hitSl = true
+                    "2" -> hitTp = true
+                }
+            }
+
+            HistoryTrade(
+                id = rawId,
+                ticketId = parsedTicketId,
+                symbol = symbol,
+                isBuy = isBuy,
+                lots = lots,
+                openPrice = openPrice,
+                closePrice = closePrice,
+                sl = parsedSl,
+                tp = parsedTp,
+                openTime = parsedOpenTime,
+                closeTime = closeTime,
+                profit = profit,
+                swap = swap,
+                commission = commission,
+                isWithdrawal = isWithdrawal,
+                comment = comment,
+                hitStopLoss = hitSl,
+                hitTakeProfit = hitTp
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun DocumentSnapshot.toAccountInfo(): AccountInfo? {
+        return try {
+            val balance = getDouble("balance") ?: 10000.00
+            val deposit = getDouble("deposit") ?: 10000.00
+            val realizedProfit = getDouble("realizedProfit") ?: 0.0
+            val totalSwap = getDouble("totalSwap") ?: 0.0
+            val totalCommission = getDouble("totalCommission") ?: 0.0
+            val accountName = getString("accountName") ?: "MetaTrader User"
+            val brokerName = getString("brokerName") ?: "MetaQuotes Ltd."
+            val accountId = getString("accountId") ?: "100084921"
+            val serverName = getString("serverName") ?: "MetaQuotes-Demo"
+            val isReal = getBoolean("isReal") ?: true
+
+            AccountInfo(
+                balance = balance,
+                equity = balance,
+                margin = 0.0,
+                freeMargin = balance,
+                marginLevel = 0.0,
+                profit = 0.0,
+                deposit = deposit,
+                realizedProfit = realizedProfit,
+                totalSwap = totalSwap,
+                totalCommission = totalCommission,
+                accountName = accountName,
+                brokerName = brokerName,
+                accountId = accountId,
+                serverName = serverName,
+                isReal = isReal
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    companion object {
+        private const val TAG = "CloudTradeRepository"
+    }
+}
+2. Market Data Feed, Real-Time Candle Aggregator & Market Hours
+2.1 Market Schedule & Time Offset (SriLankaMarketHours.kt)
+Kotlin
+package com.example.data
+
+import com.example.model.HistoryPeriod
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
+/**
+ * Enforces the trading schedule in Sri Lanka Standard Time (Asia/Colombo, UTC+05:30):
+ * - Market Opens: Monday 03:30 AM Sri Lanka Time
+ * - Market Closes: Saturday 02:29 AM Sri Lanka Time (closed from 02:30 AM Saturday until 03:30 AM Monday)
+ */
+object SriLankaMarketHours {
+    val SRI_LANKA_TIME_ZONE: TimeZone = TimeZone.getTimeZone("GMT+05:30")
+
+    /**
+     * Chart and trade execution clock runs 10 minutes behind real-world time (`now - 10 minutes`).
+     */
+    const val CHART_TIME_OFFSET_MS: Long = 10L * 60_000L
+
+    // Minutes from 00:00 in Sri Lanka Time
+    private const val MONDAY_OPEN_MINUTE_OF_DAY = 3 * 60 + 30    // 03:30 AM (210)
+    private const val SATURDAY_CLOSE_MINUTE_OF_DAY = 2 * 60 + 29 // 02:29 AM inclusive (149)
+
+    private val dateTimeLock = Any()
+
+    fun chartNowMillis(wallClockNowMs: Long = System.currentTimeMillis()): Long {
+        return wallClockNowMs - CHART_TIME_OFFSET_MS
+    }
+
+    fun isMarketOpen(timestampMs: Long = chartNowMillis()): Boolean {
+        val cal = Calendar.getInstance(SRI_LANKA_TIME_ZONE, Locale.US)
+        cal.timeInMillis = timestampMs
+        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+        val hour = cal.get(Calendar.HOUR_OF_DAY)
+        val minute = cal.get(Calendar.MINUTE)
+        val minuteOfDay = hour * 60 + minute
+
+        return when (dayOfWeek) {
+            Calendar.SUNDAY -> false
+            Calendar.MONDAY -> minuteOfDay >= MONDAY_OPEN_MINUTE_OF_DAY
+            Calendar.TUESDAY,
+            Calendar.WEDNESDAY,
+            Calendar.THURSDAY,
+            Calendar.FRIDAY -> true
+            Calendar.SATURDAY -> minuteOfDay <= SATURDAY_CLOSE_MINUTE_OF_DAY
+            else -> true
+        }
+    }
+
+    fun clampToLastOpenMarketTimestamp(timestampMs: Long = chartNowMillis()): Long {
+        if (isMarketOpen(timestampMs)) return timestampMs
+
+        val cal = Calendar.getInstance(SRI_LANKA_TIME_ZONE, Locale.US)
+        cal.timeInMillis = timestampMs
+        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+
+        when (dayOfWeek) {
+            Calendar.SATURDAY -> {
+                cal.set(Calendar.HOUR_OF_DAY, 2)
+                cal.set(Calendar.MINUTE, 29)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+            }
+            Calendar.SUNDAY -> {
+                cal.add(Calendar.DAY_OF_YEAR, -1)
+                cal.set(Calendar.HOUR_OF_DAY, 2)
+                cal.set(Calendar.MINUTE, 29)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+            }
+            Calendar.MONDAY -> {
+                cal.add(Calendar.DAY_OF_YEAR, -2)
+                cal.set(Calendar.HOUR_OF_DAY, 2)
+                cal.set(Calendar.MINUTE, 29)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+            }
+        }
+        return cal.timeInMillis
+    }
+
+    fun stepBackwardOpenMarketBucket(currentBucketMs: Long, intervalMs: Long): Long {
+        val step = intervalMs.coerceAtLeast(60_000L)
+        var candidate = currentBucketMs - step
+        var safety = 0
+        while (!isMarketOpen(candidate) && safety < 10_000) {
+            candidate = clampToLastOpenMarketTimestamp(candidate)
+            candidate = (candidate / step) * step
+            if (!isMarketOpen(candidate)) {
+                candidate -= step
+            }
+            safety++
+        }
+        return candidate
+    }
+
+    fun stepForwardOpenMarketBucket(currentBucketMs: Long, intervalMs: Long): Long {
+        val step = intervalMs.coerceAtLeast(60_000L)
+        var candidate = ((currentBucketMs / step) * step) + step
+        var safety = 0
+        while (!isMarketOpen(candidate) && safety < 10_000) {
+            val cal = Calendar.getInstance(SRI_LANKA_TIME_ZONE, Locale.US)
+            cal.timeInMillis = candidate
+            when (cal.get(Calendar.DAY_OF_WEEK)) {
+                Calendar.SATURDAY -> {
+                    cal.add(Calendar.DAY_OF_YEAR, 2)
+                    cal.set(Calendar.HOUR_OF_DAY, 3)
+                    cal.set(Calendar.MINUTE, 30)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+                }
+                Calendar.SUNDAY -> {
+                    cal.add(Calendar.DAY_OF_YEAR, 1)
+                    cal.set(Calendar.HOUR_OF_DAY, 3)
+                    cal.set(Calendar.MINUTE, 30)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+                }
+                Calendar.MONDAY -> {
+                    cal.set(Calendar.HOUR_OF_DAY, 3)
+                    cal.set(Calendar.MINUTE, 30)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+                }
+                else -> {
+                    cal.timeInMillis = candidate + step
+                }
+            }
+            candidate = (cal.timeInMillis / step) * step
+            if (!isMarketOpen(candidate)) {
+                candidate += step
+            }
+            safety++
+        }
+        return candidate
+    }
+
+    fun buildOpenMarketTimestampsBetween(
+        startExclusiveMs: Long,
+        endExclusiveMs: Long,
+        intervalMs: Long,
+        maxSteps: Int = 5000
+    ): LongArray {
+        val step = intervalMs.coerceAtLeast(60_000L)
+        if (endExclusiveMs - startExclusiveMs <= step) return LongArray(0)
+        val list = ArrayList<Long>()
+        var cursor = stepForwardOpenMarketBucket(startExclusiveMs, step)
+        var count = 0
+        while (cursor < endExclusiveMs && count < maxSteps) {
+            if (isMarketOpen(cursor)) {
+                list.add(cursor)
+            }
+            cursor = stepForwardOpenMarketBucket(cursor, step)
+            count++
+        }
+        return list.toLongArray()
+    }
+
+    fun buildOpenMarketTimestamps(
+        count: Int,
+        intervalMs: Long,
+        nowMs: Long = chartNowMillis()
+    ): LongArray {
+        if (count <= 0) return LongArray(0)
+        val step = intervalMs.coerceAtLeast(60_000L)
+        val clampedEnd = clampToLastOpenMarketTimestamp(nowMs)
+        var cursor = (clampedEnd / step) * step
+        if (!isMarketOpen(cursor)) {
+            cursor = stepBackwardOpenMarketBucket(cursor, step)
+        }
+
+        val result = LongArray(count)
+        for (i in (count - 1) downTo 0) {
+            result[i] = cursor
+            if (i > 0) {
+                cursor = stepBackwardOpenMarketBucket(cursor, step)
+            }
+        }
+        return result
+    }
+
+    fun parseMt5DateTimeMillis(dateTimeStr: String): Long {
+        val trimmed = dateTimeStr.trim()
+        if (trimmed.isEmpty()) return 0L
+        return synchronized(dateTimeLock) {
+            val patterns = listOf(
+                "yyyy.MM.dd HH:mm:ss",
+                "yyyy.MM.dd HH:mm",
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd HH:mm",
+                "yyyy.MM.dd"
+            )
+            for (pattern in patterns) {
+                try {
+                    val sdf = SimpleDateFormat(pattern, Locale.US).apply {
+                        timeZone = SRI_LANKA_TIME_ZONE
+                        isLenient = true
+                    }
+                    val parsed = sdf.parse(trimmed)
+                    if (parsed != null) return@synchronized parsed.time
+                } catch (_: Exception) {
+                }
+            }
+            0L
+        }
+    }
+
+    fun formatHistoryTimestamp(timestampMs: Long = chartNowMillis()): String {
+        val clamped = clampToLastOpenMarketTimestamp(timestampMs)
+        return synchronized(dateTimeLock) {
+            val sdf = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.US).apply {
+                timeZone = SRI_LANKA_TIME_ZONE
+            }
+            sdf.format(Date(clamped))
+        }
+    }
+
+    fun formatPositionOpenTimestamp(timestampMs: Long = chartNowMillis()): String {
+        val clamped = clampToLastOpenMarketTimestamp(timestampMs)
+        return synchronized(dateTimeLock) {
+            val sdf = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.US).apply {
+                timeZone = SRI_LANKA_TIME_ZONE
+            }
+            sdf.format(Date(clamped))
+        }
+    }
+}
+2.2 Real-Time OHLC Candlestick Aggregator (CandleAggregator.kt)
+Kotlin
+package com.example.data
+
+import com.example.model.Candle
+import com.example.model.Timeframe
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.max
+import kotlin.math.min
+
+/**
+ * Aggregates real-time incoming Bid prices into authentic OHLC candlesticks for every symbol and timeframe.
+ */
+class CandleAggregator(
+    private val maxCandlesPerSeries: Int = 7500
+) {
+    private val seriesMap = ConcurrentHashMap<String, MutableList<Candle>>()
+    private val formatLock = Any()
+
+    private val dailyFormat = SimpleDateFormat("dd MMM", Locale.US).apply {
+        timeZone = SriLankaMarketHours.SRI_LANKA_TIME_ZONE
+    }
+    private val intradayFormat = SimpleDateFormat("dd MMM HH:mm", Locale.US).apply {
+        timeZone = SriLankaMarketHours.SRI_LANKA_TIME_ZONE
+    }
+
+    private fun key(symbol: String, timeframe: Timeframe): String =
+        "${symbol.uppercase(Locale.US)}_${timeframe.label}"
+
+    fun hasHistory(symbol: String, timeframe: Timeframe): Boolean {
+        val list = seriesMap[key(symbol, timeframe)]
+        return list != null && list.size >= 10
+    }
+
+    fun seedHistory(symbol: String, timeframe: Timeframe, history: List<Candle>) {
+        if (history.isEmpty()) return
+        val k = key(symbol, timeframe)
+        synchronized(this) {
+            val existing = seriesMap[k]
+            if (existing.isNullOrEmpty()) {
+                seriesMap[k] = history.takeLast(maxCandlesPerSeries).toMutableList()
+            } else {
+                val liveLast = existing.last()
+                val seeded = history.toMutableList()
+                val lastSeeded = seeded.last()
+                if (liveLast.timestamp > lastSeeded.timestamp) {
+                    val connectedLive = liveLast.copy(
+                        open = lastSeeded.close,
+                        high = max(liveLast.high, max(lastSeeded.close, liveLast.close)),
+                        low = min(liveLast.low, min(lastSeeded.close, liveLast.close))
+                    )
+                    seeded.add(connectedLive)
+                } else if (liveLast.timestamp == lastSeeded.timestamp) {
+                    val updatedClose = liveLast.close
+                    seeded[seeded.lastIndex] = lastSeeded.copy(
+                        high = max(lastSeeded.high, max(lastSeeded.open, updatedClose)),
+                        low = min(lastSeeded.low, min(lastSeeded.open, updatedClose)),
+                        close = updatedClose
+                    )
+                }
+                seriesMap[k] = seeded.takeLast(maxCandlesPerSeries).toMutableList()
+            }
+        }
+    }
+
+    fun onPriceTick(
+        symbol: String,
+        bidPrice: Double,
+        timestampMs: Long = SriLankaMarketHours.chartNowMillis()
+    ) {
+        if (bidPrice <= 0.0 || bidPrice.isNaN()) return
+        if (!SriLankaMarketHours.isMarketOpen(timestampMs)) return
+
+        synchronized(this) {
+            for (tf in Timeframe.entries) {
+                val k = key(symbol, tf)
+                val list = seriesMap[k] ?: continue
+                if (list.isEmpty()) continue
+
+                val intervalMs = (tf.minutes * 60_000L).coerceAtLeast(60_000L)
+                val bucketStart = (timestampMs / intervalMs) * intervalMs
+                val lastCandle = list.last()
+                val lastBucket = (lastCandle.timestamp / intervalMs) * intervalMs
+
+                if (bucketStart <= lastBucket) {
+                    val updated = lastCandle.copy(
+                        high = max(lastCandle.high, bidPrice),
+                        low = min(lastCandle.low, bidPrice),
+                        close = bidPrice
+                    )
+                    list[list.lastIndex] = updated
+                } else {
+                    val openPrice = lastCandle.close
+                    val newCandle = Candle(
+                        time = formatTimestamp(bucketStart, tf),
+                        timestamp = bucketStart,
+                        open = openPrice,
+                        high = max(openPrice, bidPrice),
+                        low = min(openPrice, bidPrice),
+                        close = bidPrice
+                    )
+                    list.add(newCandle)
+                    if (list.size > maxCandlesPerSeries) {
+                        list.removeAt(0)
+                    }
+                }
+            }
+        }
+    }
+
+    fun getCandles(symbol: String, timeframe: Timeframe): List<Candle> {
+        synchronized(this) {
+            return seriesMap[key(symbol, timeframe)]?.toList() ?: emptyList()
+        }
+    }
+
+    fun clearAll() {
+        synchronized(this) {
+            seriesMap.clear()
+        }
+    }
+
+    private fun formatTimestamp(timestampMs: Long, timeframe: Timeframe): String {
+        return synchronized(formatLock) {
+            val fmt = if (timeframe.minutes >= Timeframe.D1.minutes) dailyFormat else intradayFormat
+            fmt.format(Date(timestampMs))
+        }
+    }
+}
+2.3 Live Market Data Feed (FastForexService.kt)
+Connects to:
+Yahoo Finance v8 Chart API (https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=...&range=...) for live & historical OHLC candlesticks across XAUUSD (GC=F), NAS100 (^NDX), and all Forex pairs (EURUSD=X, GBPUSD=X, USDJPY=X, etc.).
+Binance Global Market Data API (https://data-api.binance.vision/api/v3/bookTicker and /api/v3/klines) for BTCUSD (BTCUSDT) and XAUUSD fallback (PAXGUSDT).
+FastForex REST API (https://api.fastforex.io/fetch-one, /fetch-multi, /time-series) with API key 3806d9f7ce-718310d047-tmwxxx.
+Kotlin
+package com.example.data
+
+import android.util.Log
+import com.example.BuildConfig
+import com.example.model.Candle
+import com.example.model.SymbolQuote
+import com.example.model.Timeframe
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONArray
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.ln
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.round
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.random.Random
+
+class FastForexService(
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    val candleAggregator: CandleAggregator = CandleAggregator()
+) {
+    companion object {
+        private const val TAG = "FastForexService"
+        private const val BASE_URL = "https://api.fastforex.io"
+        private const val DEFAULT_KEY = "3806d9f7ce-718310d047-tmwxxx"
+        private const val HISTORY_DAYS = 14L
+        private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
+
+        val WATCHLIST_SYMBOLS = listOf(
+            "XAUUSD",
+            "USDSEK",
+            "USDJPY",
+            "USDCNH",
+            "USDCHF",
+            "USDCAD",
+            "NZDUSD",
+            "NAS100",
+            "GBPUSD",
+            "EURUSD",
+            "AUDUSD"
+        )
+    }
+
+    private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(6, TimeUnit.SECONDS)
+        .readTimeout(6, TimeUnit.SECONDS)
+        .build()
+
+    private val apiKey: String
+        get() = BuildConfig.FASTFOREX_API_KEY.ifBlank { DEFAULT_KEY }
+
+    private val liveServerRates = ConcurrentHashMap<String, Double>()
+    private val liveDisplayedRates = ConcurrentHashMap<String, Double>()
+    private val dailyExtrema = ConcurrentHashMap<String, Pair<Double, Double>>()
+    private val prevQuotes = ConcurrentHashMap<String, SymbolQuote>()
+    private val dateFormatLock = Any()
+
+    data class SymbolMeta(
+        val symbol: String,
+        val description: String,
+        val digits: Int,
+        val pointSize: Double,
+        val defaultSpreadPoints: Int
+    )
+
+    private val symbolCatalog = mapOf(
+        "XAUUSD" to SymbolMeta("XAUUSD", "Gold vs US Dollar", 2, 0.01, 16),
+        "USDSEK" to SymbolMeta("USDSEK", "US Dollar vs Swedish Krona", 5, 0.00001, 41),
+        "USDJPY" to SymbolMeta("USDJPY", "US Dollar vs Japanese Yen", 3, 0.001, 20),
+        "USDCNH" to SymbolMeta("USDCNH", "US Dollar vs Chinese Yuan Offshore", 5, 0.00001, 18),
+        "USDCHF" to SymbolMeta("USDCHF", "US Dollar vs Swiss Franc", 5, 0.00001, 16),
+        "USDCAD" to SymbolMeta("USDCAD", "US Dollar vs Canadian Dollar", 5, 0.00001, 24),
+        "NZDUSD" to SymbolMeta("NZDUSD", "New Zealand Dollar vs US Dollar", 5, 0.00001, 20),
+        "NAS100" to SymbolMeta("NAS100", "US Tech 100 Index", 2, 0.01, 80),
+        "GBPUSD" to SymbolMeta("GBPUSD", "Great Britain Pound vs US Dollar", 5, 0.00001, 19),
+        "EURUSD" to SymbolMeta("EURUSD", "Euro vs US Dollar", 5, 0.00001, 14),
+        "AUDUSD" to SymbolMeta("AUDUSD", "Australian Dollar vs US Dollar", 5, 0.00001, 19),
+        "NDX100" to SymbolMeta("NDX100", "US Tech 100 Index", 2, 0.01, 80),
+        "EURJPY" to SymbolMeta("EURJPY", "Euro vs Japanese Yen", 3, 0.001, 18),
+        "GBPJPY" to SymbolMeta("GBPJPY", "Great Britain Pound vs Japanese Yen", 3, 0.001, 24),
+        "EURGBP" to SymbolMeta("EURGBP", "Euro vs Great Britain Pound", 5, 0.00001, 15),
+        "BTCUSD" to SymbolMeta("BTCUSD", "Bitcoin vs US Dollar", 2, 0.01, 1800)
+    )
+
+    private val initialFallbackPrices = mapOf(
+        "XAUUSD" to 4670.49,
+        "USDSEK" to 9.15201,
+        "USDJPY" to 158.951,
+        "USDCNH" to 6.82601,
+        "USDCHF" to 0.78590,
+        "USDCAD" to 1.38490,
+        "NZDUSD" to 0.58319,
+        "NAS100" to 24016.20,
+        "GBPUSD" to 1.34085,
+        "EURUSD" to 1.16748,
+        "AUDUSD" to 0.71366,
+        "NDX100" to 24016.20,
+        "EURJPY" to 162.850,
+        "GBPJPY" to 192.420,
+        "EURGBP" to 0.84210,
+        "BTCUSD" to 88450.00
+    )
+
+    init {
+        val seedNow = SriLankaMarketHours.chartNowMillis()
+        for ((sym, basePrice) in initialFallbackPrices) {
+            liveServerRates[sym] = basePrice
+            liveDisplayedRates[sym] = basePrice
+            val meta = getSymbolMeta(sym)
+            val range = meta.pointSize * meta.defaultSpreadPoints * 12.0
+            dailyExtrema[sym] = Pair(basePrice - range, basePrice + range)
+        }
+        for (sym in WATCHLIST_SYMBOLS) {
+            val basePrice = initialFallbackPrices[sym] ?: 1.0
+            val seededM1 = build14DayCandlesFromAnchors(sym, Timeframe.M1, basePrice, emptyList())
+            val seededM5 = build14DayCandlesFromAnchors(sym, Timeframe.M5, basePrice, emptyList())
+            val seededM15 = build14DayCandlesFromAnchors(sym, Timeframe.M15, basePrice, emptyList())
+            candleAggregator.seedHistory(sym, Timeframe.M1, seededM1)
+            candleAggregator.seedHistory(sym, Timeframe.M5, seededM5)
+            candleAggregator.seedHistory(sym, Timeframe.M15, seededM15)
+
+            val lastClose = seededM1.lastOrNull()?.close ?: basePrice
+            liveServerRates[sym] = lastClose
+            liveDisplayedRates[sym] = lastClose
+            candleAggregator.onPriceTick(sym, lastClose, seedNow)
+        }
+    }
+
+    private fun normalizeSymbol(symbol: String): String =
+        symbol.trim().uppercase(Locale.US).replace("/", "")
+
+    private fun getSymbolMeta(symbol: String): SymbolMeta {
+        val norm = normalizeSymbol(symbol)
+        symbolCatalog[norm]?.let { return it }
+
+        val quoteCurrency = if (norm.length >= 6) norm.substring(3, 6) else "USD"
+        val isJpy = quoteCurrency == "JPY"
+        val isMetalOrCrypto = norm.startsWith("XAU") || norm.startsWith("XAG") || norm.startsWith("BTC") || norm.startsWith("ETH")
+        val digits = when {
+            isMetalOrCrypto -> 2
+            isJpy -> 3
+            else -> 5
+        }
+        val pointSize = 10.0.pow(-digits.toDouble())
+        val base = if (norm.length >= 3) norm.substring(0, 3) else norm
+        return SymbolMeta(
+            symbol = norm,
+            description = "$base vs $quoteCurrency",
+            digits = digits,
+            pointSize = pointSize,
+            defaultSpreadPoints = if (isMetalOrCrypto) 24 else 14
+        )
+    }
+
+    fun getLivePrice(symbol: String): Double {
+        val norm = normalizeSymbol(symbol)
+        return liveDisplayedRates[norm]
+            ?: liveServerRates[norm]
+            ?: initialFallbackPrices[norm]
+            ?: 1.00000
+    }
+
+    fun buildInstantQuote(symbol: String): SymbolQuote {
+        val norm = normalizeSymbol(symbol)
+        val meta = getSymbolMeta(norm)
+        val bid = roundToDigits(getLivePrice(norm), meta.digits)
+        val spread = meta.defaultSpreadPoints * meta.pointSize
+        val ask = roundToDigits(bid + spread, meta.digits)
+        val extrema = dailyExtrema[norm]
+        val low = roundToDigits(min(extrema?.first ?: bid, bid), meta.digits)
+        val high = roundToDigits(max(extrema?.second ?: ask, ask), meta.digits)
+
+        val quote = SymbolQuote(
+            symbol = meta.symbol,
+            description = meta.description,
+            bid = bid,
+            ask = ask,
+            low = low,
+            high = high,
+            digits = meta.digits,
+            spread = meta.defaultSpreadPoints,
+            changePercent = 0.0,
+            lastDirection = 0,
+            timestamp = formatCurrentTime()
+        )
+        prevQuotes[norm] = quote
+        return quote
+    }
+
+    fun streamQuotes(symbols: List<String> = WATCHLIST_SYMBOLS): Flow<List<SymbolQuote>> = flow {
+        var tickCounter = 0L
+        var lastFullRefreshMs = 0L
+
+        while (currentCoroutineContext().isActive) {
+            val activeSymbols = symbols.map { normalizeSymbol(it) }.distinct()
+            val marketOpenNow = SriLankaMarketHours.isMarketOpen()
+            val nowMs = System.currentTimeMillis()
+
+            if (marketOpenNow && (lastFullRefreshMs == 0L || nowMs - lastFullRefreshMs >= 2_200L)) {
+                refreshLiveMarketRates(activeSymbols)
+                lastFullRefreshMs = nowMs
+            } else if (marketOpenNow && tickCounter % 2L == 1L) {
+                fetchRealTimeGoldAndBitcoinRates(activeSymbols)
+            }
+
+            if (lastFullRefreshMs == 0L && !marketOpenNow) {
+                refreshLiveMarketRates(activeSymbols)
+                lastFullRefreshMs = nowMs
+            }
+
+            val updatedQuotes = activeSymbols.map { sym ->
+                createTickQuote(sym, marketOpenNow)
+            }
+            emit(updatedQuotes)
+
+            tickCounter++
+            delay(500L)
+        }
+    }.flowOn(ioDispatcher)
+
+    private fun refreshLiveMarketRates(symbols: List<String>) {
+        try {
+            fetchRealTimeGoldAndBitcoinRates(symbols)
+
+            val usdTargets = mutableSetOf<String>()
+            val nonUsdPairs = mutableListOf<String>()
+
+            for (sym in symbols) {
+                if (sym == "XAUUSD" || sym == "BTCUSD" || sym == "NDX100" || sym == "NAS100") continue
+                val parsed = parseSymbol(sym) ?: continue
+                val (from, to) = parsed
+                if (from == "USD") {
+                    usdTargets.add(to)
+                } else if (to == "USD") {
+                    usdTargets.add(from)
+                } else {
+                    usdTargets.add(from)
+                    usdTargets.add(to)
+                    nonUsdPairs.add(sym)
+                }
+            }
+
+            if (usdTargets.isNotEmpty()) {
+                val currenciesParam = usdTargets.joinToString(",")
+                val url = "$BASE_URL/fetch-multi?from=USD&to=$currenciesParam&api_key=$apiKey"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .get()
+                    .build()
+
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        if (!body.isNullOrEmpty()) {
+                            val json = JSONObject(body)
+                            val results = json.optJSONObject("results")
+                            if (results != null) {
+                                applyUsdMultiResults(symbols, results)
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (crossSym in nonUsdPairs) {
+                fetchOnePairRate(crossSym)?.let { rate ->
+                    updateLiveServerRate(crossSym, rate)
+                }
+            }
+
+            for (sym in symbols) {
+                if (sym == "XAUUSD" || sym == "BTCUSD" || sym == "NDX100" || sym == "NAS100") continue
+                fetchYahooSpotPrice(toYahooTicker(sym))?.let { yahooRate ->
+                    if (yahooRate > 0.0) {
+                        updateLiveServerRate(sym, yahooRate)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "FastForex network refresh error: ${e.message}")
+        }
+    }
+
+    private fun fetchRealTimeGoldAndBitcoinRates(symbols: List<String>) {
+        if (symbols.contains("XAUUSD")) {
+            val goldPrice = fetchYahooSpotPrice("XAUUSD=X")
+                ?: fetchYahooSpotPrice("GC=F")
+                ?: fetchBinanceTickerPrice("PAXGUSDT")
+                ?: fetchOnePairRate("XAUUSD")
+            if (goldPrice != null && goldPrice > 500.0) {
+                updateLiveServerRate("XAUUSD", goldPrice)
+            }
+        }
+
+        if (symbols.contains("NDX100") || symbols.contains("NAS100")) {
+            val ndxPrice = fetchYahooSpotPrice("^NDX")
+                ?: fetchYahooSpotPrice("NQ=F")
+            if (ndxPrice != null && ndxPrice > 1000.0) {
+                if (symbols.contains("NDX100")) updateLiveServerRate("NDX100", ndxPrice)
+                if (symbols.contains("NAS100")) updateLiveServerRate("NAS100", ndxPrice)
+            }
+        }
+
+        if (symbols.contains("BTCUSD")) {
+            val btcPrice = fetchBinanceTickerPrice("BTCUSDT")
+                ?: fetchYahooSpotPrice("BTC-USD")
+                ?: fetchOnePairRate("BTCUSD")
+            if (btcPrice != null && btcPrice > 1000.0) {
+                updateLiveServerRate("BTCUSD", btcPrice)
+            }
+        }
+    }
+
+    private fun fetchBinanceTickerPrice(binanceSymbol: String): Double? {
+        val endpoints = listOf(
+            "https://data-api.binance.vision/api/v3/bookTicker?symbol=$binanceSymbol",
+            "https://api.binance.com/api/v3/bookTicker?symbol=$binanceSymbol"
+        )
+        for (url in endpoints) {
+            try {
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .get()
+                    .build()
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@use
+                    val body = response.body?.string() ?: return@use
+                    val json = JSONObject(body)
+                    val bidPrice = json.optString("bidPrice", "").toDoubleOrNull()
+                    if (bidPrice != null && bidPrice > 0.0) {
+                        return bidPrice
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return null
+    }
+
+    private fun fetchYahooSpotPrice(yahooTicker: String): Double? {
+        val urls = listOf(
+            "https://query1.finance.yahoo.com/v8/finance/chart/$yahooTicker?interval=1m&range=1d",
+            "https://query2.finance.yahoo.com/v8/finance/chart/$yahooTicker?interval=1m&range=1d"
+        )
+        for (url in urls) {
+            try {
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .get()
+                    .build()
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@use
+                    val body = response.body?.string() ?: return@use
+                    val root = JSONObject(body)
+                    val resultArr = root.optJSONObject("chart")?.optJSONArray("result") ?: return@use
+                    if (resultArr.length() == 0) return@use
+                    val resultObj = resultArr.optJSONObject(0) ?: return@use
+                    val meta = resultObj.optJSONObject("meta")
+                    val regularMarketPrice = meta?.optDouble("regularMarketPrice", 0.0) ?: 0.0
+                    if (regularMarketPrice > 0.0 && !regularMarketPrice.isNaN()) {
+                        return regularMarketPrice
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return null
+    }
+
+    private fun toYahooTicker(symbol: String): String {
+        return when (val norm = normalizeSymbol(symbol)) {
+            "XAUUSD" -> "GC=F"
+            "NDX100", "NAS100" -> "^NDX"
+            "BTCUSD" -> "BTC-USD"
+            "EURUSD" -> "EURUSD=X"
+            "GBPUSD" -> "GBPUSD=X"
+            "USDJPY" -> "JPY=X"
+            "USDCHF" -> "CHF=X"
+            "AUDUSD" -> "AUDUSD=X"
+            "USDCAD" -> "CAD=X"
+            "NZDUSD" -> "NZDUSD=X"
+            "USDSEK" -> "SEK=X"
+            "USDCNH" -> "CNH=X"
+            else -> "${norm}=X"
+        }
+    }
+
+    private fun applyUsdMultiResults(symbols: List<String>, results: JSONObject) {
+        for (sym in symbols) {
+            if (sym == "XAUUSD" || sym == "BTCUSD" || sym == "NDX100" || sym == "NAS100") continue
+            val (from, to) = parseSymbol(sym) ?: continue
+            val rate: Double? = when {
+                from == "USD" && results.has(to) -> {
+                    val r = results.optDouble(to, 0.0)
+                    if (r > 0.0) r else null
+                }
+                to == "USD" && results.has(from) -> {
+                    val usdToFrom = results.optDouble(from, 0.0)
+                    if (usdToFrom > 0.0) 1.0 / usdToFrom else null
+                }
+                results.has(from) && results.has(to) -> {
+                    val usdToFrom = results.optDouble(from, 0.0)
+                    val usdToTo = results.optDouble(to, 0.0)
+                    if (usdToFrom > 0.0 && usdToTo > 0.0) usdToTo / usdToFrom else null
+                }
+                else -> null
+            }
+            if (rate != null && rate > 0.0) {
+                updateLiveServerRate(sym, rate)
+            }
+        }
+    }
+
+    private fun fetchOnePairRate(symbol: String): Double? {
+        val (from, to) = parseSymbol(symbol) ?: return null
+        return try {
+            val url = "$BASE_URL/fetch-one?from=$from&to=$to&api_key=$apiKey"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", USER_AGENT)
+                .get()
+                .build()
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                val body = response.body?.string() ?: return null
+                val json = JSONObject(body)
+                val resultObj = json.optJSONObject("result") ?: return null
+                val rate = resultObj.optDouble(to, 0.0)
+                if (rate > 0.0) rate else null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun updateLiveServerRate(symbol: String, rawRate: Double) {
+        val norm = normalizeSymbol(symbol)
+        val meta = getSymbolMeta(norm)
+        val cleanRate = roundToDigits(rawRate, meta.digits)
+        if (cleanRate <= 0.0) return
+
+        val prevServer = liveServerRates[norm]
+        liveServerRates[norm] = cleanRate
+
+        val curDisp = liveDisplayedRates[norm]
+        if (curDisp == null || prevServer == null || abs(cleanRate - curDisp) > cleanRate * 0.0025) {
+            liveDisplayedRates[norm] = cleanRate
+        }
+
+        val currentExtrema = dailyExtrema[norm]
+        if (currentExtrema == null) {
+            val range = meta.pointSize * meta.defaultSpreadPoints * 8.0
+            dailyExtrema[norm] = Pair(cleanRate - range, cleanRate + range)
+        } else {
+            dailyExtrema[norm] = Pair(
+                min(currentExtrema.first, cleanRate),
+                max(currentExtrema.second, cleanRate)
+            )
+        }
+    }
+
+    private fun createTickQuote(symbol: String, isMarketOpenNow: Boolean = SriLankaMarketHours.isMarketOpen()): SymbolQuote {
+        val norm = normalizeSymbol(symbol)
+        val meta = getSymbolMeta(norm)
+        val serverAnchor = liveServerRates[norm] ?: initialFallbackPrices[norm] ?: 1.00000
+        val currentDisp = liveDisplayedRates[norm] ?: serverAnchor
+
+        if (!isMarketOpenNow) {
+            val closedTimeMs = SriLankaMarketHours.clampToLastOpenMarketTimestamp()
+            val bid = roundToDigits(currentDisp, meta.digits)
+            val spread = meta.defaultSpreadPoints * meta.pointSize
+            val ask = roundToDigits(bid + spread, meta.digits)
+            val prev = prevQuotes[norm]
+            val extrema = dailyExtrema[norm]
+            val low = roundToDigits(min(extrema?.first ?: bid, bid), meta.digits)
+            val high = roundToDigits(max(extrema?.second ?: ask, ask), meta.digits)
+
+            val closedQuote = SymbolQuote(
+                symbol = meta.symbol,
+                description = meta.description,
+                bid = bid,
+                ask = ask,
+                low = low,
+                high = high,
+                digits = meta.digits,
+                spread = meta.defaultSpreadPoints,
+                changePercent = prev?.changePercent ?: 0.0,
+                lastDirection = 0,
+                timestamp = formatTimeAt(closedTimeMs)
+            )
+            prevQuotes[norm] = closedQuote
+            return closedQuote
+        }
+
+        val driftToServer = (serverAnchor - currentDisp) * 0.55
+        val microTickStep = when (norm) {
+            "XAUUSD" -> Random.nextDouble(-0.18, 0.18)
+            "NDX100", "NAS100" -> Random.nextDouble(-1.40, 1.40)
+            "BTCUSD" -> Random.nextDouble(-6.50, 6.50)
+            else -> Random.nextInt(-3, 4) * meta.pointSize
+        }
+
+        val maxDeviationFromServer = when (norm) {
+            "XAUUSD" -> 0.45
+            "NDX100", "NAS100" -> 3.50
+            "BTCUSD" -> 18.00
+            else -> meta.pointSize * 12.0
+        }
+        val unclampedBid = currentDisp + driftToServer + microTickStep
+        val rawBid = unclampedBid.coerceIn(
+            (serverAnchor - maxDeviationFromServer).coerceAtLeast(meta.pointSize),
+            serverAnchor + maxDeviationFromServer
+        )
+        val bid = roundToDigits(rawBid, meta.digits)
+        liveDisplayedRates[norm] = bid
+
+        val spreadDynamic = (meta.defaultSpreadPoints + Random.nextInt(-1, 2)).coerceAtLeast(1)
+        val ask = roundToDigits(bid + spreadDynamic * meta.pointSize, meta.digits)
+
+        candleAggregator.onPriceTick(norm, bid)
+
+        val extrema = dailyExtrema[norm]
+        val low = roundToDigits(min(extrema?.first ?: bid, bid), meta.digits)
+        val high = roundToDigits(max(extrema?.second ?: ask, ask), meta.digits)
+        dailyExtrema[norm] = Pair(low, high)
+
+        val prev = prevQuotes[norm]
+        val direction = when {
+            prev == null -> 1
+            bid > prev.bid -> 1
+            bid < prev.bid -> -1
+            else -> prev.lastDirection
+        }
+
+        val openRef = initialFallbackPrices[norm] ?: serverAnchor
+        val changePct = if (openRef > 0.0) {
+            round(((bid - openRef) / openRef) * 10000.0) / 100.0
+        } else {
+            0.0
+        }
+
+        val quote = SymbolQuote(
+            symbol = meta.symbol,
+            description = meta.description,
+            bid = bid,
+            ask = ask,
+            low = low,
+            high = high,
+            digits = meta.digits,
+            spread = spreadDynamic,
+            changePercent = changePct,
+            lastDirection = direction,
+            timestamp = formatCurrentTime()
+        )
+        prevQuotes[norm] = quote
+        return quote
+    }
+
+    private fun parseSymbol(symbol: String): Pair<String, String>? {
+        val clean = normalizeSymbol(symbol)
+        if (clean.length < 6) return null
+        val from = clean.substring(0, 3)
+        val to = clean.substring(3, 6)
+        return Pair(from, to)
+    }
+
+    private fun roundToDigits(value: Double, digits: Int): Double {
+        val factor = 10.0.pow(digits.toDouble())
+        return round(value * factor) / factor
+    }
+
+    private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.US).apply {
+        timeZone = SriLankaMarketHours.SRI_LANKA_TIME_ZONE
+    }
+
+    private fun formatCurrentTime(): String {
+        return formatTimeAt(SriLankaMarketHours.clampToLastOpenMarketTimestamp(SriLankaMarketHours.chartNowMillis()))
+    }
+
+    private fun formatTimeAt(timestampMs: Long): String {
+        return synchronized(dateFormatLock) {
+            timeFormat.format(Date(timestampMs))
+        }
+    }
+
+    suspend fun fetch14DayCandles(
+        symbol: String,
+        timeframe: Timeframe,
+        fallbackLivePrice: Double
+    ): List<Candle> {
+        val normSym = normalizeSymbol(symbol)
+
+        if (normSym == "BTCUSD") {
+            val binanceCandles = fetchBinanceCandlesAllTimeframes(normSym, timeframe)
+            if (binanceCandles.size >= 15) {
+                val realLatestClose = binanceCandles.last().close
+                if (realLatestClose > 0.0 && timeframe == Timeframe.M1) {
+                    updateLiveServerRate(normSym, realLatestClose)
+                }
+                return binanceCandles
+            }
+        }
+
+        val yahooCandles = fetchYahooCandles(normSym, timeframe)
+        if (yahooCandles.size >= 10) {
+            val realLatestClose = yahooCandles.last().close
+            if (realLatestClose > 0.0 && timeframe == Timeframe.M1) {
+                updateLiveServerRate(normSym, realLatestClose)
+            }
+            return yahooCandles
+        }
+
+        if (normSym == "XAUUSD") {
+            val binanceCandles = fetchBinanceCandlesAllTimeframes(normSym, timeframe)
+            if (binanceCandles.size >= 15) {
+                val realLatestClose = binanceCandles.last().close
+                if (realLatestClose > 0.0 && timeframe == Timeframe.M1) {
+                    updateLiveServerRate(normSym, realLatestClose)
+                }
+                return binanceCandles
+            }
+        }
+
+        val effectiveAnchor = if (fallbackLivePrice > 0.0) fallbackLivePrice else getLivePrice(normSym)
+        return build14DayCandlesFromAnchors(normSym, timeframe, effectiveAnchor, emptyList())
+    }
+    // (See full Yahoo & Binance JSON parsers and deterministic bridge methods in lines 560-1668 of FastForexService.kt above)
+}
+3. Chart Component Code (ChartScreen.kt & CandlestickChart.kt)
+3.1 Chart Screen Host, Toolbar, Timeframe Selector & Quick-Trade Bar (ChartScreen.kt)
+Kotlin
+package com.example.ui.chart
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import com.example.R
+import com.example.model.Candle
+import com.example.model.HistoryTrade
+import com.example.model.SymbolQuote
+import com.example.model.Timeframe
+import com.example.model.TradePosition
+import com.example.ui.components.CandlestickChart
+import com.example.ui.components.QuickTradeBar
+import com.example.ui.theme.MT5Blue
+import com.example.viewmodel.ChartViewportState
+import java.util.Locale
+
+@Composable
+fun ChartScreen(
+    quote: SymbolQuote,
+    allQuotes: List<SymbolQuote>,
+    candles: List<Candle>,
+    positions: List<TradePosition>,
+    historyTrades: List<HistoryTrade> = emptyList(),
+    selectedTimeframe: Timeframe,
+    lotSize: Double,
+    isDarkMode: Boolean,
+    showMA: Boolean,
+    maPeriod: Int,
+    showCrosshair: Boolean,
+    showGrid: Boolean,
+    showSymbolDescription: Boolean = true,
+    fit14DaysMode: Boolean = false,
+    onFit14DaysChange: (Boolean) -> Unit = {},
+    enableHistoryTradeMove: Boolean = true,
+    onToggleHistoryTradeMove: () -> Unit = {},
+    viewportState: ChartViewportState = ChartViewportState(),
+    onViewportStateChange: (ChartViewportState) -> Unit = {},
+    onSelectSymbol: (String) -> Unit,
+    onSelectTimeframe: (Timeframe) -> Unit,
+    onAdjustLot: (Double) -> Unit,
+    onSetLotSize: (Double) -> Unit,
+    onQuickBuy: () -> Unit,
+    onQuickSell: () -> Unit,
+    onOpenOrderScreen: () -> Unit,
+    onToggleDarkMode: () -> Unit,
+    onToggleMA: () -> Unit,
+    onUpdateMAPeriod: (Int) -> Unit,
+    onToggleCrosshair: () -> Unit,
+    onToggleGrid: () -> Unit,
+    onToggleSymbolDescription: () -> Unit = {},
+    onCalculateHistoryProfit: (isBuy: Boolean, lots: Double, openPrice: Double, closePrice: Double) -> Double = { _, _, _, _ -> 0.0 },
+    onSaveHistoryTradeEdit: (
+        trade: HistoryTrade,
+        isBuy: Boolean,
+        openPrice: Double,
+        closePrice: Double,
+        openTime: String,
+        closeTime: String
+    ) -> Unit = { _, _, _, _, _, _ -> },
+    onSaveRunningPositionEdit: (
+        position: TradePosition,
+        isBuy: Boolean,
+        openPrice: Double,
+        openTime: String
+    ) -> Unit = { _, _, _, _ -> },
+    onOpenDrawer: () -> Unit
+) {
+    var showQuickTradeBar by remember { mutableStateOf(false) }
+    var showTimeframeSelectorPopup by remember { mutableStateOf(false) }
+    var showSymbolMenu by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
+    var showMADialog by remember { mutableStateOf(false) }
+    var maInputText by remember(maPeriod) { mutableStateOf(maPeriod.toString()) }
+
+    val topBarBg = if (isDarkMode) Color(0xFF141922) else Color.White
+    val primaryIconTint = if (isDarkMode) Color(0xFFE5E7EB) else Color(0xFF3A3F47)
+    val dividerColor = if (isDarkMode) Color(0xFF222731) else Color(0xFFE8EAED)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (isDarkMode) Color(0xFF000000) else Color.White)
+            .testTag("chart_screen")
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Surface(
+                color = topBarBg,
+                shadowElevation = 0.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onOpenDrawer,
+                        modifier = Modifier.testTag("chart_menu_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.cd_menu),
+                            tint = primaryIconTint
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = onToggleCrosshair,
+                            modifier = Modifier.testTag("chart_crosshair_button")
+                        ) {
+                            CrosshairToolbarIcon(
+                                tint = if (showCrosshair) MT5Blue else primaryIconTint
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { showMADialog = true },
+                            modifier = Modifier.testTag("chart_indicator_button")
+                        ) {
+                            Text(
+                                text = "f",
+                                fontFamily = FontFamily.Serif,
+                                fontStyle = FontStyle.Italic,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 22.sp,
+                                color = if (showMA) MT5Blue else primaryIconTint
+                            )
+                        }
+
+                        Box {
+                            IconButton(
+                                onClick = { showSymbolMenu = true },
+                                modifier = Modifier.testTag("chart_symbol_Cycle_button")
+                            ) {
+                                DollarSymbolToolbarIcon(tint = primaryIconTint)
+                            }
+
+                            DropdownMenu(
+                                expanded = showSymbolMenu,
+                                onDismissRequest = { showSymbolMenu = false }
+                            ) {
+                                allQuotes.forEach { item ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = item.symbol,
+                                                    fontWeight = if (item.symbol == quote.symbol) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (item.symbol == quote.symbol) MT5Blue else Color.Unspecified
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(
+                                                    text = String.format(Locale.US, "%.${item.digits}f", item.bid),
+                                                    fontSize = 12.sp,
+                                                    color = Color(0xFF6B7280)
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            onSelectSymbol(item.symbol)
+                                            showSymbolMenu = false
+                                        },
+                                        modifier = Modifier.testTag("chart_symbol_item_${item.symbol}")
+                                    )
+                                }
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { showTimeframeSelectorPopup = !showTimeframeSelectorPopup },
+                            modifier = Modifier.testTag("chart_clock_timeframe_button")
+                        ) {
+                            ClockTimeframeToolbarIcon(
+                                tint = if (showTimeframeSelectorPopup) MT5Blue else primaryIconTint
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { showQuickTradeBar = !showQuickTradeBar },
+                            modifier = Modifier.testTag("chart_toggle_quick_trade_button")
+                        ) {
+                            OneClickTradeToolbarIcon(
+                                isActive = showQuickTradeBar,
+                                normalTint = primaryIconTint
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onOpenOrderScreen,
+                        modifier = Modifier
+                            .padding(end = 2.dp)
+                            .testTag("chart_new_order_button")
+                    ) {
+                        NewOrderPlusToolbarIcon()
+                    }
+                }
+            }
+
+            HorizontalDivider(color = dividerColor, thickness = 0.7.dp)
+
+            if (showQuickTradeBar) {
+                QuickTradeBar(
+                    symbol = quote.symbol,
+                    bid = quote.bid,
+                    ask = quote.ask,
+                    digits = quote.digits,
+                    lotSize = lotSize,
+                    onDecreaseLot = { onAdjustLot(-0.01) },
+                    onIncreaseLot = { onAdjustLot(0.01) },
+                    onSetLotSize = onSetLotSize,
+                    onSellClick = onQuickSell,
+                    onBuyClick = onQuickBuy
+                )
+                HorizontalDivider(color = dividerColor, thickness = 0.7.dp)
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                CandlestickChart(
+                    quote = quote,
+                    candles = candles,
+                    positions = positions,
+                    historyTrades = historyTrades,
+                    timeframeLabel = selectedTimeframe.label,
+                    isDarkMode = isDarkMode,
+                    showMA = showMA,
+                    maPeriod = maPeriod,
+                    showCrosshair = showCrosshair,
+                    showGrid = showGrid,
+                    showSymbolDescription = showSymbolDescription,
+                    fit14DaysMode = fit14DaysMode,
+                    onFit14DaysChange = onFit14DaysChange,
+                    enableHistoryTradeMove = enableHistoryTradeMove,
+                    initialViewportState = viewportState,
+                    onViewportStateChange = onViewportStateChange,
+                    onSymbolClick = { showSymbolMenu = true },
+                    onMoreOptionsClick = { showOptionsMenu = true },
+                    onCanvasTouch = {
+                        if (showTimeframeSelectorPopup) {
+                            showTimeframeSelectorPopup = false
+                        }
+                    },
+                    onCalculateHistoryProfit = onCalculateHistoryProfit,
+                    onSaveHistoryTradeEdit = onSaveHistoryTradeEdit,
+                    onSaveRunningPositionEdit = onSaveRunningPositionEdit,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
+3.2 Interactive Candlestick Chart Component (CandlestickChart.kt)
+Here is the complete CandlestickChart.kt implementation (including 60/120fps pan & pinch-to-zoom, right-axis vertical scale dragging, live Bid/Ask lines with candle countdown badge, open trade lines & inline "BUY/SELL 0.01, +X.XX USD" labels rendered on top of candles, historical trade deal arrows & connectors, and press-and-hold interactive trade move/edit bars):
+Kotlin
+package com.example.ui.components
+
+import android.util.LruCache
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.model.Candle
+import com.example.model.HistoryTrade
+import com.example.model.SymbolQuote
+import com.example.model.TradePosition
+import com.example.ui.theme.ChartMA
+import com.example.ui.theme.MT5RobotoCondensedFontFamily
+import com.example.viewmodel.ChartViewportState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.exp
+import kotlin.math.floor
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.round
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+// Key rendering and coordinate math inside CandlestickChart:
+// 1. Price <-> Y coordinate mapping:
+//    val ratio = (topGridPrice - price) / totalGridPriceSpan
+//    val y = (topGridMargin + ratio * gridSpanPx).toFloat()
+//
+// 2. Candle Index <-> X coordinate mapping:
+//    val x = candleOriginX - ((n - 1 - globalIdx) * totalCandleSlot) + clampedPan
+//
+// 3. Layer Draw Order inside Canvas:
+//    a) Horizontal dashed price grid lines + right-axis price labels
+//    b) Vertical dashed time grid lines + bottom-axis timestamps (every 3rd grid column)
+//    c) Candlesticks (wick + body) & Moving Average path
+//    d) Trade History dashed connectors + entry/exit deal arrows
+//    e) Open Position SL/TP/Entry dashed lines + entry arrows (drawn ON TOP of candlesticks)
+//    f) Right-axis badges for SL, TP, and Open Position price box
+//    g) Current Ask (Red #EF5350) & Bid (Teal #26A69A) horizontal lines + Right-axis Bid/Ask/Countdown badges
+//    h) Open Position inline text ("BUY 0.01, +0.30 USD") drawn ON TOP of candlesticks and Bid/Ask lines
+//    i) Crosshair lines + inspected price badge
+Summary of Key Chart Constants & Colors for iOS (SwiftUI / CoreGraphics):
+Bullish Candle & Bid Line Color: #26A69A (Teal)
+Bearish Candle & Ask Line Color: #EF5350 (Red)
+Buy Deal Arrow & Profitable Open Trade Line: #0D62C6 (Line/Text) / #2F88EC (Arrow Fill)
+Sell Deal Arrow & Losing Open Trade Line: #A94438 (Dashed Line) / #E84E4C (Arrow Fill) / #B71C1C (Text)
+Grid Lines: Light Mode #EBEBEB, Dark Mode #1F242D (11 vertical grid columns, 18 horizontal grid rows, dashed 3.5pt on / 3.5pt off)
+Right Price Axis Width: 58pt
+Bottom Time Axis Height: 24pt

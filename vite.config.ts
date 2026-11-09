@@ -18,6 +18,26 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      proxy: {
+        '/yahoo-q1': {
+          target: 'https://query1.finance.yahoo.com',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/yahoo-q1/, ''),
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+          },
+        },
+        '/yahoo-q2': {
+          target: 'https://query2.finance.yahoo.com',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/yahoo-q2/, ''),
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+          },
+        },
+      },
     },
   };
 });
