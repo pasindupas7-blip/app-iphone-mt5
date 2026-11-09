@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Build production web bundle and prepare www directory
         run: |
@@ -33,9 +33,14 @@ jobs:
       - name: Initialize Capacitor iOS wrapper
         run: |
           npm install --no-save @capacitor/core@6 @capacitor/cli@6 @capacitor/ios@6 --legacy-peer-deps
-          if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ] && [ ! -f capacitor.config.js ]; then
-            npx cap init "App" "com.app.ios" --web-dir=www
-          fi
+          rm -f capacitor.config.ts capacitor.config.js
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "com.app.ios",
+            "appName": "App",
+            "webDir": "www"
+          }
+          EOF
           rm -rf ios
           npx cap add ios
           npx cap copy ios
@@ -43,16 +48,32 @@ jobs:
       - name: Compile unsigned iOS App.app with Xcode
         working-directory: ios/App
         run: |
-          xcodebuild \
-            -project App.xcodeproj \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            clean build
+          if [ -f "Podfile" ] && [ ! -d "Pods/Target Support Files" ]; then
+            pod install
+          fi
+          if [ -d "App.xcworkspace" ]; then
+            xcodebuild \
+              -workspace App.xcworkspace \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -derivedDataPath build \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              clean build
+          else
+            xcodebuild \
+              -project App.xcodeproj \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -derivedDataPath build \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              clean build
+          fi
 
       - name: Package App.app into ipa-distribution/app-debug.ipa
         run: |
